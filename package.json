@@ -22,6 +22,9 @@
         },
         "logViewer.subreddits": {
           "type": "array",
+          "items": {
+            "type": "string"
+          },
           "default": [
             "programming"
           ],
@@ -110,6 +113,13 @@
           "command": "logViewer.clearCache",
           "group": "navigation",
           "when": "view == logViewer"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "logViewer.refresh",
+          "group": "navigation",
+          "when": "resourceScheme == stealth-log"
         }
       ],
       "view/item/context": [
