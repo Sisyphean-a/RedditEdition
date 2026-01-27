@@ -9,7 +9,14 @@
     "sourceMap": true,
     "rootDir": "src",
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "types": [
+      "vscode",
+      "node",
+      "mocha"
+    ]
   },
   "exclude": [
     "node_modules",

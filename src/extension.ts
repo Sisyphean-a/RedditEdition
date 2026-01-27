@@ -30,11 +30,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand('logViewer.refresh', (node) => treeProvider.refresh(node?.name)),
+    vscode.commands.registerCommand('logViewer.refresh', (node: any) => treeProvider.refresh(node?.name)),
     vscode.commands.registerCommand('logViewer.refreshAll', () => treeProvider.refresh()),
     vscode.commands.registerCommand('logViewer.clearCache', () => cache.clear()),
-    vscode.commands.registerCommand('logViewer.loadMorePosts', (node) => treeProvider.loadMorePosts(node.subreddit)),
-    vscode.commands.registerCommand('logViewer.loadMoreComments', (uri) => contentProvider.loadMoreComments(uri))
+    vscode.commands.registerCommand('logViewer.loadMorePosts', (node: any) => treeProvider.loadMorePosts(node.subreddit)),
+    vscode.commands.registerCommand('logViewer.loadMoreComments', (uri: any) => contentProvider.loadMoreComments(uri)),
+    vscode.commands.registerCommand('logViewer.openSettings', () => {
+      vscode.commands.executeCommand('workbench.action.openSettings', 'logViewer');
+    })
   );
 }
 
