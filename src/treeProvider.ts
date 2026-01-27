@@ -134,23 +134,31 @@ export class RedditTreeProvider implements vscode.TreeDataProvider<TreeNode> {
         }
       }
 
-      // 批量翻译标题
-      const titles = data.posts.map((p) => p.title);
-      // Try to get cached translations or translate
-      // Since we don't cache list items individually deeply, let's just translate on the fly or maybe translator caches?
-      // Implementing a simple batch translation call
-      let translatedTitles = titles;
-      try {
-        translatedTitles = await this.translator.translateTitles(titles);
-      } catch (e) {
-        // Verify console or silent fail
+      // Try to get cached translations FIRST
+      const cachedTitles: string[] | undefined = (data as any).translatedTitles;
+      let displayTitles = cachedTitles || data.posts.map((p) => p.title);
+
+      // If no cache, trigger async translation
+      if (!cachedTitles) {
+        this.translator
+          .translateTitles(data.posts.map((p) => p.title))
+          .then((translated) => {
+            if (data) {
+              (data as any).translatedTitles = translated;
+              // Trigger refresh to show Chinese titles
+              this._onDidChangeTreeData.fire(element);
+            }
+          })
+          .catch((e) => {
+            console.error("Async translation failed", e);
+          });
       }
 
       const nodes: TreeNode[] = data.posts.map((post, index) => ({
         type: "post",
         id: post.id,
         subreddit: element.name,
-        title: translatedTitles[index] || post.title,
+        title: displayTitles[index] || post.title,
         post: post,
       }));
 
