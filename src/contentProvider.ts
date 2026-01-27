@@ -67,7 +67,7 @@ ${translated.selftext || "[无正文内容]"}
 `;
 
     if (translated.comments) {
-        log += this.formatComments(translated.comments, 0);
+        log += this.formatComments(translated.comments, "", "");
     }
 
     log += `
@@ -78,22 +78,51 @@ ${translated.selftext || "[无正文内容]"}
       return log;
   }
 
-  private formatComments(comments: any[], depth: number): string {
+  private formatComments(comments: any[], parentId: string, indent: string): string {
       let output = "";
-      const indent = "       ".repeat(depth);
       
-      comments.forEach((comment: any, index: number) => {
-          const id = depth === 0 ? `[#${String(index + 1).padStart(3, '0')}]` : `├─ [#${index + 1}]`;
-          const prefix = depth === 0 ? "" : indent;
+      comments.forEach((c, i) => {
+          const idx = i + 1;
+          const currentId = parentId ? `${parentId}.${idx}` : String(idx).padStart(3, '0');
+          const isLast = i === comments.length - 1;
           
-          output += `\n${prefix}${id} ${comment.author}\n${prefix}       ${comment.body.replace(/\n/g, `\n${prefix}       `)}\n`;
+          let header = "";
+          let bodyIndent = "";
+          let childIndent = "";
           
-          if (comment.replies && comment.replies.length > 0) {
-              output += `       ${prefix}│\n`;
-              output += this.formatComments(comment.replies, depth + 1);
+          if (!parentId) {
+              // Root level
+              header = `[#${currentId}] ${c.author}`;
+              bodyIndent = "       ";
+              childIndent = "       "; 
+          } else {
+              // Nested level
+              const branch = isLast ? "└── " : "├── ";
+              header = `${indent}${branch}[#${currentId}] ${c.author}`;
+              
+              const vertical = isLast ? "    " : "│   ";
+              bodyIndent = `${indent}${vertical}`;
+              childIndent = `${indent}${vertical}`;
+          }
+
+          output += `${header}\n`;
+          
+          // Body
+          const lines = c.body.split('\n');
+          for (const line of lines) {
+              if (line.trim()) {
+                output += `${bodyIndent}${line}\n`;
+              }
+          }
+
+          // Recursive Replies
+          if (c.replies && c.replies.length > 0) {
+              output += this.formatComments(c.replies, currentId, childIndent);
+          } else {
+              // Add spacer after root comments or non-last blocks for readability
+              if (!parentId) output += "\n"; 
           }
       });
-      
       return output;
   }
 

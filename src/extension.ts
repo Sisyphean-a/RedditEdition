@@ -6,17 +6,24 @@ import { RedditClient } from './redditClient';
 import { Translator } from './translator';
 import { RedditTreeProvider } from './treeProvider';
 import { LogContentProvider } from './contentProvider';
+import { Logger } from './logger';
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "log-viewer" is now active!');
+  Logger.initialize(context, 'Log Viewer Debug');
+  Logger.log('Extension "log-viewer" is activating...');
 
   const config = getConfig();
+
+  if (!config.geminiApiKey) {
+      vscode.window.showWarningMessage('未配置 Gemini API Key，翻译功能将不可用。请在设置中配置 `logViewer.geminiApiKey`。');
+      Logger.error('Gemini API Key is not configured.');
+  }
 
   // Initialize modules
   const limiter = new RateLimiter();
   const cache = new CacheManager(context.globalState, config.cacheDuration);
   const client = new RedditClient(limiter, config.redditCookie);
-  const translator = new Translator(config.geminiApiKey);
+  const translator = new Translator(config.geminiApiKey, config.geminiModel);
 
   // Register Providers
   const treeProvider = new RedditTreeProvider(client, translator, cache, config);
@@ -39,6 +46,10 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.executeCommand('workbench.action.openSettings', 'logViewer');
     })
   );
+
+  Logger.log('Extension activated successfully.');
 }
 
-export function deactivate() {}
+export function deactivate() {
+    Logger.log('Extension deactivated.');
+}

@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { RedditPost, RedditComment } from './redditClient';
+import { Logger } from './logger';
+import axios from 'axios';
 
 export interface TranslatedPost {
   title: string;
@@ -15,15 +17,25 @@ export interface TranslatedComment {
 
 export class Translator {
   private genAI: GoogleGenerativeAI;
+  private apiKey: string;
+  private modelName: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, modelName: string) {
+    this.apiKey = apiKey;
+    this.modelName = modelName;
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
   async translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost> {
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // 1. 如果没有 API Key，直接使用保底逻辑
+    if (!this.apiKey) {
+      Logger.log('No API Key configured, using fallback translation directly.');
+      return this.runFallbackStrategy(post, comments);
+    }
 
-    // Prepare a simplified structure for translation to save tokens and reduce complexity
+    const model = this.genAI.getGenerativeModel({ model: this.modelName });
+
+    // Prepare a simplified structure for translation
     const payload = {
       title: post.title,
       selftext: post.selftext,
@@ -50,21 +62,87 @@ export class Translator {
     `;
 
     try {
+      Logger.log(`Starting translation for post: ${post.id} using model ${this.modelName}`);
+      
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      // Clean up markdown code blocks if present
+      
+      Logger.log(`Translation response received (length: ${text.length})`);
+
       const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(jsonStr) as TranslatedPost;
-    } catch (error) {
-      console.error('Translation failed:', error);
-      // Fallback: return original text if translation fails
-      return {
-          title: post.title + " (翻译失败)",
-          selftext: post.selftext,
-          comments: [] // Return empty or map original
-      };
+      
+      try {
+          const parsed = JSON.parse(jsonStr) as TranslatedPost;
+          Logger.log('Translation parsed successfully');
+          return parsed;
+      } catch (parseError) {
+          Logger.error('Failed to parse (JSON) translation response', parseError);
+          throw new Error('JSON Parse Error');
+      }
+
+    } catch (error: any) {
+      Logger.error(`Gemini translation failed: ${error.message}. Switching to fallback...`);
+      return this.runFallbackStrategy(post, comments);
     }
+  }
+
+  // 保底策略：逐个字段使用 HTTP 接口翻译
+  private async runFallbackStrategy(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost> {
+    Logger.log('Running fallback strategy...');
+    try {
+        const [title, selftext] = await Promise.all([
+            this.fallbackTranslate(post.title),
+            this.fallbackTranslate(post.selftext, 1000) // 截断正文以防 URL 过长
+        ]);
+
+        // 仅翻译前 5 条顶级评论，不翻译嵌套，以减少请求数
+        const translatedComments: TranslatedComment[] = [];
+        for (const c of comments.slice(0, 5)) {
+             const body = await this.fallbackTranslate(c.body, 500);
+             translatedComments.push({
+                 author: c.author,
+                 body: body,
+                 replies: [] // 保底模式下忽略嵌套评论
+             });
+        }
+
+        return {
+            title: title || post.title,
+            selftext: selftext ? selftext + "\n\n(提示：内容已截断并使用备用线路翻译)" : post.selftext,
+            comments: translatedComments
+        };
+    } catch (err) {
+        Logger.error('Fallback strategy completely failed', err);
+        return {
+            title: post.title + " (翻译服务全线不可用)",
+            selftext: post.selftext,
+            comments: []
+        };
+    }
+  }
+
+  // 单文本翻译
+  private async fallbackTranslate(text: string, maxLength?: number): Promise<string> {
+      if (!text) return '';
+      if (maxLength && text.length > maxLength) {
+          text = text.substring(0, maxLength) + '...';
+      }
+
+      // 简单清理换行符，避免 URL 编码问题
+      const q = encodeURIComponent(text.replace(/\r?\n/g, ' '));
+      const url = `https://fanyi.sisyphean.top/single?client=gtx&sl=auto&tl=zh_CN&dt=t&q=${q}`;
+
+      try {
+          const res = await axios.get(url, { timeout: 10000 }); // 10秒超时
+          if (res.data && res.data.translation) {
+              return res.data.translation;
+          }
+          return text;
+      } catch (error) {
+          // 静默失败，返回原文
+          return text;
+      }
   }
 
   private simplifyComment(comment: RedditComment, depth: number, maxDepth: number): any {
