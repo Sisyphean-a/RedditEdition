@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register Providers
   const treeProvider = new RedditTreeProvider(client, translator, cache, config);
-  const contentProvider = new LogContentProvider(client, translator, cache);
+  const contentProvider = new LogContentProvider(client, translator, cache, config);
 
   // Register TreeView
   vscode.window.registerTreeDataProvider('logViewer', treeProvider);

@@ -41,6 +41,11 @@
           "type": "number",
           "default": 30,
           "description": "缓存时长（分钟）"
+        },
+        "logViewer.wordWrapWidth": {
+          "type": "number",
+          "default": 80,
+          "description": "内容硬换行宽度 (字符)"
         }
       }
     },

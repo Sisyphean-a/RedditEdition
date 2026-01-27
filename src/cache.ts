@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
+import { Logger } from './logger';
 
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
 }
+
+const KEYS_TRACKER = '__managed_keys__';
 
 export class CacheManager {
   constructor(private storage: vscode.Memento, private durationMinutes: number) {}
@@ -19,6 +22,7 @@ export class CacheManager {
     
     if (now - entry.timestamp > durationMs) {
       this.storage.update(key, undefined); // Clean up expired
+      this.removeKeyFromTracker(key);
       return null;
     }
 
@@ -31,26 +35,36 @@ export class CacheManager {
       timestamp: Date.now()
     };
     this.storage.update(key, entry);
+    this.addKeyToTracker(key);
   }
 
-  clear(): void {
-    // Note: globalState doesn't have a clear method to clear ONLY our keys effectively without prefixing everything carefully or iterating (which Memento doesn't support directly).
-    // For now, we rely on overwrite or new keys. 
-    // However, to truly clear, we might want to store a list of keys we added if we want to wipe perfectly, 
-    // or just rely on manual update(key, undefined) for known keys.
-    // Given the API limitations, we might just not implement a full "wipe everything" unless we track keys.
-    // Let's defer full clear logic or implement a simple key tracker if needed.
-    // For this version, we'll placeholder it as we can't iterate memento.
-    // A workaround involves using a secret token or prefixing.
-    // We will assume keys are managed individually for now.
-    // Actually, let's just make it a no-op or specific key clearing if known.
-    // WAIT, if we put everything in a single JSON object under one key, we can clear it.
-    // BUT that limits size.
-    // Let's stick to individual keys and just accept clear might need to be specific or we track keys in a Set stored in storage.
+  async clear(): Promise<void> {
+    const keys = this.storage.get<string[]>(KEYS_TRACKER, []);
+    Logger.log(`Clearing ${keys.length} cache entries...`);
+    
+    for (const key of keys) {
+        await this.storage.update(key, undefined);
+    }
+    
+    await this.storage.update(KEYS_TRACKER, undefined);
+    Logger.log('Cache cleared successfully.');
+    vscode.window.showInformationMessage('Reddit Log Viewer: 缓存已清除');
   }
   
-  // Helper to add a key to tracking set
-  private trackKey(key: string) {
-      // implementation tracking would go here
+  private addKeyToTracker(key: string) {
+      const keys = this.storage.get<string[]>(KEYS_TRACKER, []) || [];
+      if (!keys.includes(key)) {
+          keys.push(key);
+          this.storage.update(KEYS_TRACKER, keys);
+      }
+  }
+
+  private removeKeyFromTracker(key: string) {
+      const keys = this.storage.get<string[]>(KEYS_TRACKER, []) || [];
+      const index = keys.indexOf(key);
+      if (index !== -1) {
+          keys.splice(index, 1);
+          this.storage.update(KEYS_TRACKER, keys);
+      }
   }
 }

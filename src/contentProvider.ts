@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { RedditClient } from './redditClient';
 import { Translator } from './translator';
 import { CacheManager } from './cache';
+import { Config } from './config';
 
 export class LogContentProvider implements vscode.TextDocumentContentProvider {
   private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -10,7 +11,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
   constructor(
     private client: RedditClient,
     private translator: Translator,
-    private cache: CacheManager
+    private cache: CacheManager,
+    private config: Config
   ) {}
 
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
@@ -107,9 +109,9 @@ ${translated.selftext || "[无正文内容]"}
 
           output += `${header}\n`;
           
-          // Body
-          const lines = c.body.split('\n');
-          for (const line of lines) {
+          // Body with hard wrap
+          const wrappedLines = this.wordWrap(c.body, this.config.wordWrapWidth); 
+          for (const line of wrappedLines) {
               if (line.trim()) {
                 output += `${bodyIndent}${line}\n`;
               }
@@ -124,6 +126,42 @@ ${translated.selftext || "[无正文内容]"}
           }
       });
       return output;
+  }
+
+  private wordWrap(text: string, maxLength: number): string[] {
+      const lines: string[] = [];
+      const paragraphs = text.split('\n');
+
+      for (const para of paragraphs) {
+          if (!para) {
+              continue; // Skip empty paragraphs (or handle them if needed)
+          }
+
+          let remaining = para;
+          while (remaining.length > maxLength) {
+              let splitIndex = maxLength;
+
+              // Optimistic wrap: try to find a space near the break point
+              // Search backwards from maxLength
+              const spaceIndex = remaining.lastIndexOf(' ', maxLength);
+              
+              // If space found and it's not too far back (e.g., within last 20 chars), split there
+              // This prevents wrapping "I am a develop" | "er" -> "developer" split
+              // But for Chinese which has no spaces, this check will fail (spaceIndex = -1 or very old)
+              // So, if no space or space is too far, we just hard break (good for Chinese)
+              if (spaceIndex > maxLength * 0.7) {
+                  splitIndex = spaceIndex;
+              }
+
+              lines.push(remaining.substring(0, splitIndex));
+              remaining = remaining.substring(splitIndex).trim(); // trim leading space of next line
+          }
+          
+          if (remaining) {
+              lines.push(remaining);
+          }
+      }
+      return lines;
   }
 
   update(uri: vscode.Uri) {
