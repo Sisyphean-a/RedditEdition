@@ -94,28 +94,20 @@ export class Translator {
   }
 
   async translateTitles(titles: string[]): Promise<string[]> {
-    if (!this.apiKey || titles.length === 0) return titles;
+    if (titles.length === 0) return titles;
 
-    const model = this.genAI.getGenerativeModel({ model: this.modelName });
-    const prompt = `
-      Translate the following Reddit titles to Chinese (Simplified).
-      Maintain the original meaning but make it natural.
-      Return ONLY a JSON array of strings.
-      
-      Titles:
-      ${JSON.stringify(titles)}
-      `;
+    // 并行转换所有标题，使用基础翻译API
+    Logger.log(`Translating ${titles.length} titles using fallback API...`);
+    const promises = titles.map((t) => this.fallbackTranslate(t));
+    return Promise.all(promises);
+  }
 
-    try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const jsonStr = text.replace(/```json\n?|\n?```/g, "").trim();
-      const parsed = JSON.parse(jsonStr) as string[];
-      return parsed.length === titles.length ? parsed : titles;
-    } catch (e) {
-      Logger.error("Failed to translate titles", e);
-      return titles;
-    }
+  // 快速翻译模式：只翻译核心内容，不使用 Gemini
+  async translatePostFast(
+    post: RedditPost,
+    comments: RedditComment[],
+  ): Promise<TranslatedPost> {
+    return this.runFallbackStrategy(post, comments);
   }
 
   // 保底策略：逐个字段使用 HTTP 接口翻译

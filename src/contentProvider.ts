@@ -28,6 +28,7 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     const filename = pathParts[3];
     const postId = filename.replace(".log", "");
 
+    // Check for full translation cache first
     const cacheKey = `trans:${postId}`;
     const cached = this.cache.get<string>(cacheKey);
     if (cached) {
@@ -37,16 +38,33 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     try {
       const { post, comments } = await this.client.fetchPost(subreddit, postId);
 
-      // Translate
-      const translated = await this.translator.translatePost(post, comments);
+      // Trigger background detailed translation
+      this.triggerBackgroundTranslation(uri, post, comments);
 
-      // Format
-      const content = this.formatLog(post, translated);
-
-      this.cache.set(cacheKey, content);
-      return content;
+      // Return fast translation immediately
+      const translated = await this.translator.translatePostFast(
+        post,
+        comments,
+      );
+      return this.formatLog(post, translated);
     } catch (e) {
       return `[ERROR] 0x0001 数据解码失败 | 时间戳: ${Date.now()}\n[TRACE] 模块: ContentDecoder | 状态: FAILED\n[DETAILS] ${e}`;
+    }
+  }
+
+  private async triggerBackgroundTranslation(
+    uri: vscode.Uri,
+    post: any,
+    comments: any[],
+  ) {
+    try {
+      const translated = await this.translator.translatePost(post, comments);
+      const content = this.formatLog(post, translated);
+      this.cache.set(`trans:${post.id}`, content);
+      this._onDidChange.fire(uri);
+    } catch (e) {
+      // Background translation failed, just ignore or log
+      console.error("Background translation failed", e);
     }
   }
 
@@ -55,19 +73,18 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
       "zh-CN",
     );
 
-    let log = `================================================================================
-[SYSTEM LOG] ${timestamp} | PID: ${original.id}
-================================================================================
+    // 使用更简洁的格式，减少类似 [INFO] 的标记，以免被 VS Code 错误高亮
+    let log = `TIMESTAMP: ${timestamp} | REF: ${original.id}
+--------------------------------------------------------------------------------
+标题: ${translated.title}
+作者: ${original.author} | 评分: ${original.score} | 评论: ${original.num_comments}
+--------------------------------------------------------------------------------
 
-[INFO] 作者: ${original.author} | 评分: ${original.score} | 评论数: ${original.num_comments}
-[TITLE] ${translated.title}
+${translated.selftext || "(无正文内容)"}
 
-[CONTENT]
-${translated.selftext || "[无正文内容]"}
-
-================================================================================
-[TRACE LOG] 评论区
-================================================================================
+--------------------------------------------------------------------------------
+评论列表
+--------------------------------------------------------------------------------
 `;
 
     if (translated.comments) {
@@ -76,7 +93,7 @@ ${translated.selftext || "[无正文内容]"}
 
     log += `
 --------------------------------------------------------------------------------
-[DEBUG] 已加载评论 | END OF LOG
+END OF LOG
 --------------------------------------------------------------------------------
 `;
     return log;
@@ -93,24 +110,25 @@ ${translated.selftext || "[无正文内容]"}
       const idx = i + 1;
       const currentId = parentId
         ? `${parentId}.${idx}`
-        : String(idx).padStart(3, "0");
+        : String(idx).padStart(2, "0");
       const isLast = i === comments.length - 1;
 
       let header = "";
       let bodyIndent = "";
       let childIndent = "";
 
+      // 简化树状图符号，使其看起来更干净
       if (!parentId) {
         // Root level
-        header = `[#${currentId}] ${c.author}`;
-        bodyIndent = "       ";
-        childIndent = "       ";
+        header = `> #${currentId} ${c.author}`;
+        bodyIndent = "  "; // 减少缩进
+        childIndent = "  ";
       } else {
         // Nested level
-        const branch = isLast ? "└── " : "├── ";
-        header = `${indent}${branch}[#${currentId}] ${c.author}`;
+        const branch = isLast ? "└─ " : "├─ ";
+        header = `${indent}${branch}#${currentId} ${c.author}`;
 
-        const vertical = isLast ? "    " : "│   ";
+        const vertical = isLast ? "   " : "│  ";
         bodyIndent = `${indent}${vertical}`;
         childIndent = `${indent}${vertical}`;
       }
@@ -125,12 +143,12 @@ ${translated.selftext || "[无正文内容]"}
         }
       }
 
+      // Add a small spacer between comments for readability
+      output += `\n`;
+
       // Recursive Replies
       if (c.replies && c.replies.length > 0) {
         output += this.formatComments(c.replies, currentId, childIndent);
-      } else {
-        // Add spacer after root comments or non-last blocks for readability
-        if (!parentId) output += "\n";
       }
     });
     return output;
