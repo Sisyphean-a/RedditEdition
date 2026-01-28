@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
-import { IRedditClient, ITranslationService } from "../domain/interfaces";
-import { CacheManager } from "../infrastructure/utils/cache";
-import { Config } from "../infrastructure/utils/config";
+import { IRedditClient, ITranslationService, RedditPost, TranslatedPost } from "@/domain";
+import { CacheManager } from "@/infrastructure/utils/cache";
+import { Config } from "@/infrastructure/utils/config";
 import { LogPresenter } from "./logPresenter";
-import { RedditPost, TranslatedPost } from "../domain/models";
 
 export class LogContentProvider implements vscode.TextDocumentContentProvider {
   private _onDidChange = new vscode.EventEmitter<vscode.Uri>();

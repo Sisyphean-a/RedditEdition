@@ -1,17 +1,17 @@
 import * as vscode from "vscode";
-import { getConfig } from "./infrastructure/utils/config";
-import { RateLimiter } from "./infrastructure/utils/rateLimiter";
-import { CacheManager } from "./infrastructure/utils/cache";
-import { RedditClient } from "./infrastructure/reddit/redditClient";
-import { Translator } from "./infrastructure/translation/translator";
-import { RedditTreeProvider } from "./presentation/treeProvider";
-import { LogContentProvider } from "./presentation/contentProvider";
-import { Logger } from "./infrastructure/utils/logger";
-import { OAuthManager } from "./infrastructure/auth/oauthManager";
-import { LogPresenter } from "./presentation/logPresenter";
-import { AccountProvider } from "./presentation/accountProvider";
+import { getConfig } from "@/infrastructure/utils/config";
+import { RateLimiter } from "@/infrastructure/utils/rateLimiter";
+import { CacheManager } from "@/infrastructure/utils/cache";
+import { RedditClient } from "@/infrastructure/reddit/redditClient";
+import { Translator } from "@/infrastructure/translation/translator";
+import { RedditTreeProvider } from "@/presentation/treeProvider";
+import { LogContentProvider } from "@/presentation/contentProvider";
+import { Logger } from "@/infrastructure/utils/logger";
+import { OAuthManager } from "@/infrastructure/auth/oauthManager";
+import { LogPresenter } from "@/presentation/logPresenter";
+import { AccountProvider } from "@/presentation/accountProvider";
 
-import { TokenTracker } from "./infrastructure/utils/tokenTracker";
+import { TokenTracker } from "@/infrastructure/utils/tokenTracker";
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.initialize(context, "Log Viewer Debug");

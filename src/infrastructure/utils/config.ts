@@ -23,7 +23,7 @@ export function getConfig(): Config {
     deepseekApiKey: config.get<string>('deepseekApiKey', ''),
     deepseekModel: config.get<string>('deepseekModel', 'deepseek-chat'),
     openRouterApiKey: config.get<string>('openRouterApiKey', ''),
-    openRouterModel: config.get<string>('openRouterModel', 'qwen/qwen3-next-80b-a3b-instruct'),
+    openRouterModel: config.get<string>('openRouterModel', 'qwen/qwen-2.5-7b-instruct'),
     translationProvider: config.get<string>('translationProvider', 'machine'),
     cacheDuration: config.get<number>('cacheDuration', 30),
     wordWrapWidth: config.get<number>('wordWrapWidth', 80),

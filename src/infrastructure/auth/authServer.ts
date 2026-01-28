@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as url from 'url';
-import { Logger } from '../utils/logger';
+import { Logger } from '@/infrastructure/utils/logger';
 
 export class AuthServer {
   private server: http.Server | null = null;

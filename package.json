@@ -57,7 +57,7 @@
         },
         "logViewer.openRouterModel": {
           "type": "string",
-          "default": "qwen/qwen3-next-80b-a3b-instruct",
+          "default": "qwen/qwen-2.5-7b-instruct",
           "description": "OpenRouter Model ID"
         },
         "logViewer.translationProvider": {
@@ -208,8 +208,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "tsc -p ./ && tsc-alias",
+    "watch": "tsc -watch -p ./ & tsc-alias -watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js"
@@ -225,10 +225,10 @@
     "eslint": "^8.41.0",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.1.3"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
     "axios": "^1.13.3"
   }
 }

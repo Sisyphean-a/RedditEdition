@@ -6,9 +6,10 @@
 
 - **隐蔽阅读**：UI 伪装成普通日志文件，完全禁用 Webview，外观与服务器日志无异。
 - **全中文体验**：
-  - **AI 翻译 (推荐)**：支持 **DeepSeek** (新!) 和 **Gemini 2.0**，支持上下文理解，翻译地道。
-  - **由 Google 翻译提供支持**：内置 Google 翻译引擎作为备选或快速浏览方案。
+  - **AI 翻译 (推荐)**：针对 **DeepSeek** (新!) 和 **OpenRouter (Qwen)** 进行了深度优化，翻译风格口语化。
+  - **由 Google 翻译提供支持**：内置网页版 Google 翻译引擎作为备选或快速浏览方案。
 - **便捷管理**：新增 **侧边栏账户视图**，一键管理登录状态、缓存和设置。
+- **Token 追踪**：实时展示本次会话预估的 Token 消耗量。
 - **灵活认证**：支持 **匿名模式 (Guest)** 和 **OAuth2 安全登录**。
   - *注：已移除不稳定的 Cookie 认证方式。*
 - **智能防风控**：内置令牌桶限流器和智能缓存系统，降低 API 封禁风险。
@@ -17,13 +18,15 @@
 ## 🚀 快速开始
 
 ### 1. 准备工作
-前往 [Google AI Studio](https://aistudio.google.com/) 免费获取 **Gemini API Key**。这是翻译功能的核心。
+获取 API Key：
+- [DeepSeek](https://platform.deepseek.com/) (推荐)
+- [OpenRouter](https://openrouter.ai/) (适合使用 Qwen 等模型)
 
 ### 2. 配置扩展
 打开 VS Code 设置 (`Ctrl+,`)，搜索 `logViewer`：
-*   **Log Viewer: Gemini Api Key**: 填入你的 Key (使用 Gemini 时必填)。
 *   **Log Viewer: Deepseek Api Key**: 填入你的 Key (使用 DeepSeek 时必填)。
-*   **Log Viewer: Translation Provider**: 选择 `ai` (Gemini) 或 `deepseek`。
+*   **Log Viewer: OpenRouter Api Key**: 填入你的 Key (使用 OpenRouter 时必填)。
+*   **Log Viewer: Translation Provider**: 选择 `deepseek`, `openrouter` 或 `machine`。
 *   **Log Viewer: Subreddits**: 添加你想看的版块，如 `programming`, `technology` (默认已预设)。
 
 ### 3. 选择认证方式

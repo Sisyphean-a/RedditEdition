@@ -1,9 +1,8 @@
 import axios from 'axios';
-import { RateLimiter } from '../utils/rateLimiter';
-import { OAuthManager } from '../auth/oauthManager';
+import { RateLimiter } from '@/infrastructure/utils/rateLimiter';
+import { OAuthManager } from '@/infrastructure/auth/oauthManager';
 
-import { IRedditClient } from '../../domain/interfaces';
-import { RedditPost, RedditComment } from '../../domain/models';
+import { IRedditClient, RedditPost, RedditComment } from "@/domain";
 
 export class RedditClient implements IRedditClient {
   constructor(

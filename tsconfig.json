@@ -11,6 +11,12 @@
     "strict": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
     "esModuleInterop": true,
     "types": [
       "vscode",

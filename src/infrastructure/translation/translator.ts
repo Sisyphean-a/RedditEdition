@@ -1,8 +1,7 @@
-import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "../../domain/models";
-import { ITranslationService, TranslationProgress } from "../../domain/interfaces";
-import { Logger } from "../utils/logger";
+import { RedditPost, RedditComment, TranslatedPost, TranslatedComment, ITranslationService, TranslationProgress } from "@/domain";
+import { Logger } from "@/infrastructure/utils/logger";
 import { ITranslationStrategy, MachineStrategy, DeepSeekStrategy, OpenRouterStrategy } from "./translationStrategies";
-import { TokenTracker } from "../utils/tokenTracker";
+import { TokenTracker } from "@/infrastructure/utils/tokenTracker";
 
 export class Translator implements ITranslationService {
   private strategy: ITranslationStrategy;

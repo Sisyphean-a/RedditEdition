@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { OAuthManager } from '../infrastructure/auth/oauthManager';
-import { RedditClient } from '../infrastructure/reddit/redditClient';
-import { TokenTracker } from '../infrastructure/utils/tokenTracker';
+import { OAuthManager } from '@/infrastructure/auth/oauthManager';
+import { RedditClient } from '@/infrastructure/reddit/redditClient';
+import { TokenTracker } from '@/infrastructure/utils/tokenTracker';
 
 export class AccountProvider implements vscode.TreeDataProvider<AccountItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<AccountItem | undefined | null | void> = new vscode.EventEmitter<AccountItem | undefined | null | void>();
