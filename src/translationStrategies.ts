@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Logger } from "./logger";
 import axios from "axios";
 
+
 export interface ITranslationStrategy {
   translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost>;
   translatePostStream?(
@@ -12,6 +13,192 @@ export interface ITranslationStrategy {
     onProgress: (progress: TranslationProgress) => void
   ): Promise<TranslatedPost>;
   translateTitles(titles: string[]): Promise<string[]>;
+}
+
+export class DeepSeekStrategy implements ITranslationStrategy {
+  private readonly baseUrl = 'https://api.deepseek.com/chat/completions';
+
+  constructor(private apiKey: string, private modelName: string) {}
+
+  async translatePostStream(
+    post: RedditPost,
+    comments: RedditComment[],
+    onProgress: (progress: TranslationProgress) => void
+  ): Promise<TranslatedPost> {
+    const payload = {
+      title: post.title,
+      selftext: post.selftext,
+      comments: comments.slice(0, 10).map((c) => this.simplifyComment(c, 0, 3)),
+    };
+
+    const prompt = `
+    将以下 Reddit 帖子翻译成中文，保持口语化风格。
+    只返回 JSON，格式如下：
+    {
+      "title": "翻译后的标题",
+      "selftext": "翻译后的正文",
+      "comments": [
+        {
+          "author": "保留原作者名",
+          "body": "翻译后的评论",
+          "replies": [...]
+        }
+      ]
+    }
+    
+    不用返回 Markdown 代码块标记，直接返回 JSON 字符串。
+    
+    原文：
+    ${JSON.stringify(payload)}
+    `;
+
+    try {
+        const response = await axios.post(
+            this.baseUrl,
+            {
+                model: this.modelName,
+                messages: [
+                    { role: "system", content: "You are a helpful assistant. Please output JSON." },
+                    { role: "user", content: prompt }
+                ],
+                stream: false,
+                response_format: { type: 'json_object' }
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
+                },
+                timeout: 120000 // Stream/Long request needs more time
+            }
+        );
+
+        const contentRaw = response.data.choices?.[0]?.message?.content || "{}";
+        const content = contentRaw.replace(/```json\n?|\n?```/g, "").trim();
+
+        try {
+            const parsed = JSON.parse(content) as TranslatedPost;
+            
+            // Notify completion
+            onProgress({
+                translated: parsed,
+                stage: 'comment',
+                commentIndex: parsed.comments?.length || 0,
+                total: parsed.comments?.length || 0
+            });
+
+            return parsed;
+        } catch (e) { 
+             Logger.error("DeepSeek JSON parse failed", e);
+             throw e;
+        }
+
+    } catch (error: any) {
+        Logger.error(`DeepSeek translation failed: ${error.message}`);
+        throw error;
+    }
+  }
+
+  async translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost> {
+    const payload = {
+      title: post.title,
+      selftext: post.selftext,
+      comments: comments.slice(0, 10).map((c) => this.simplifyComment(c, 0, 3)),
+    };
+
+    const prompt = `
+    将以下 Reddit 帖子翻译成中文，保持口语化风格。
+    只返回 JSON，格式如下：
+    {
+      "title": "翻译后的标题",
+      "selftext": "翻译后的正文",
+      "comments": [
+        {
+          "author": "保留原作者名",
+          "body": "翻译后的评论",
+          "replies": [...]
+        }
+      ]
+    }
+    
+    原文：
+    ${JSON.stringify(payload)}
+    `;
+
+    try {
+      const response = await axios.post(
+        this.baseUrl,
+        {
+          model: this.modelName,
+          messages: [
+            { role: "system", content: "You are a helpful assistant. Please output JSON." },
+            { role: "user", content: prompt }
+          ],
+          response_format: { type: 'json_object' }
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
+          timeout: 60000 // 60s timeout
+        }
+      );
+
+      const content = response.data.choices?.[0]?.message?.content || "{}";
+      return JSON.parse(content) as TranslatedPost;
+    } catch (error: any) {
+        Logger.error(`DeepSeek translation failed: ${error.message}`);
+        throw error;
+    }
+  }
+
+  async translateTitles(titles: string[]): Promise<string[]> {
+      const prompt = `
+        Translate the following Reddit titles to Chinese (Simplified).
+        Return a JSON object with a 'titles' key containing the array of strings.
+        Example: { "titles": ["Title 1 CN", "Title 2 CN"] }
+        
+        Titles: ${JSON.stringify(titles)}
+        `;
+      try {
+        const response = await axios.post(
+            this.baseUrl,
+            {
+                model: this.modelName,
+                messages: [
+                    { role: "system", content: "You are a helpful assistant. Please output JSON." }, 
+                    { role: "user", content: prompt }
+                ],
+                response_format: { type: 'json_object' }
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
+                },
+                timeout: 30000
+            }
+        );
+        const content = response.data.choices?.[0]?.message?.content || "{}";
+        const result = JSON.parse(content);
+        return result.titles || [];
+      } catch (e) {
+          throw e; 
+      }
+  }
+
+  private simplifyComment(comment: RedditComment, depth: number, maxDepth: number): any {
+    if (depth >= maxDepth) return null;
+    const simplified: any = { author: comment.author, body: comment.body };
+    if (comment.replies && comment.replies.length > 0) {
+      const replies = comment.replies
+        .map((r) => this.simplifyComment(r, depth + 1, maxDepth))
+        .filter((r) => r !== null);
+      if (replies.length > 0) simplified.replies = replies;
+    }
+    return simplified;
+  }
 }
 
 export class GeminiStrategy implements ITranslationStrategy {

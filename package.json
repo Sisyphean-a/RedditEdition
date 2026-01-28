@@ -43,21 +43,32 @@
         "logViewer.geminiApiKey": {
           "type": "string",
           "default": "",
-          "description": "解码服务密钥"
+          "description": "Gemini API 密钥"
         },
         "logViewer.geminiModel": {
           "type": "string",
           "default": "gemini-2.5-flash-lite",
-          "description": "LLM 模型版本 (如 gemini-1.5-flash, gemini-2.0-flash)"
+          "description": "Gemini 模型版本 (如 gemini-1.5-flash)"
+        },
+        "logViewer.deepseekApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "DeepSeek API 密钥"
+        },
+        "logViewer.deepseekModel": {
+          "type": "string",
+          "default": "deepseek-chat",
+          "description": "DeepSeek 模型版本 (如 deepseek-chat, deepseek-reasoner)"
         },
         "logViewer.translationProvider": {
           "type": "string",
           "enum": [
             "machine",
-            "ai"
+            "ai",
+            "deepseek"
           ],
           "default": "machine",
-          "description": "翻译引擎: machine (Google/Proxy) 或 ai (Gemini)"
+          "description": "翻译引擎: machine (Google/Proxy), ai (Gemini) 或 deepseek"
         },
         "logViewer.cacheDuration": {
           "type": "number",

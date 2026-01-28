@@ -44,7 +44,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
         post,
         comments as any[],
       );
-      return this.presenter.render(post, translated);
+      const provider = this.translator.getProviderName();
+      return this.presenter.render(post, translated, provider + " (Fast)");
     } catch (e) {
       return `[ERROR] 0x0001 数据解码失败 | 时间戳: ${Date.now()}\n[TRACE] 模块: ContentDecoder | 状态: FAILED\n[DETAILS] ${e}`;
     }
@@ -57,7 +58,8 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
   ) {
     try {
       await this.translator.translatePostStream(post, comments, (progress) => {
-        const content = this.presenter.render(post, progress.translated);
+        const provider = this.translator.getProviderName();
+        const content = this.presenter.render(post, progress.translated, provider);
         this.cache.set(`trans:${post.id}`, content);
         this._onDidChange.fire(uri);
       });

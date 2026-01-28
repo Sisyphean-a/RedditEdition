@@ -6,7 +6,7 @@
 
 - **隐蔽阅读**：UI 伪装成普通日志文件，完全禁用 Webview，外观与服务器日志无异。
 - **全中文体验**：
-  - **AI 翻译 (推荐)**：使用 Gemini 2.0 Flash 模型，支持上下文理解，翻译地道。
+  - **AI 翻译 (推荐)**：支持 **DeepSeek** (新!) 和 **Gemini 2.0**，支持上下文理解，翻译地道。
   - **由 Google 翻译提供支持**：内置 Google 翻译引擎作为备选或快速浏览方案。
 - **便捷管理**：新增 **侧边栏账户视图**，一键管理登录状态、缓存和设置。
 - **灵活认证**：支持 **匿名模式 (Guest)** 和 **OAuth2 安全登录**。
@@ -21,7 +21,9 @@
 
 ### 2. 配置扩展
 打开 VS Code 设置 (`Ctrl+,`)，搜索 `logViewer`：
-*   **Log Viewer: Gemini Api Key**: 填入你的 Key (必填)。
+*   **Log Viewer: Gemini Api Key**: 填入你的 Key (使用 Gemini 时必填)。
+*   **Log Viewer: Deepseek Api Key**: 填入你的 Key (使用 DeepSeek 时必填)。
+*   **Log Viewer: Translation Provider**: 选择 `ai` (Gemini) 或 `deepseek`。
 *   **Log Viewer: Subreddits**: 添加你想看的版块，如 `programming`, `technology` (默认已预设)。
 
 ### 3. 选择认证方式
@@ -58,10 +60,12 @@
 
 | 配置项 | 说明 | 默认值 |
 | :--- | :--- | :--- |
-| `logViewer.geminiApiKey` | Gemini API 密钥 (必填) | `""` |
+| `logViewer.geminiApiKey` | Gemini API 密钥 | `""` |
+| `logViewer.deepseekApiKey` | DeepSeek API 密钥 | `""` |
 | `logViewer.subreddits` | 订阅列表 | `["programming"]` |
-| `logViewer.translationProvider` | 翻译引擎: `machine` (Google/Proxy) 或 `ai` (Gemini) | `machine` |
+| `logViewer.translationProvider` | 翻译引擎: `machine`, `ai`, `deepseek` | `machine` |
 | `logViewer.geminiModel` | Gemini 模型版本 | `gemini-2.5-flash-lite` |
+| `logViewer.deepseekModel` | DeepSeek 模型版本 | `deepseek-chat` |
 | `logViewer.auth.clientId` | OAuth2 Client ID (用于登录) | `""` |
 | `logViewer.auth.anonymous` | 是否强制开启匿名模式 | `false` |
 | `logViewer.cacheDuration` | 内容缓存时长（分钟） | `30` |

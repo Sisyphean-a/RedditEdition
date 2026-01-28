@@ -1,7 +1,7 @@
 import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "./models";
 import { ITranslationService, TranslationProgress } from "./interfaces";
 import { Logger } from "./logger";
-import { ITranslationStrategy, GeminiStrategy, MachineStrategy } from "./translationStrategies";
+import { ITranslationStrategy, GeminiStrategy, MachineStrategy, DeepSeekStrategy } from "./translationStrategies";
 
 export class Translator implements ITranslationService {
   private strategy: ITranslationStrategy;
@@ -24,9 +24,16 @@ export class Translator implements ITranslationService {
     Logger.log(`Translator config updated: Strategy=${provider}, Model=${modelName}`);
   }
 
+  getProviderName(): string {
+    return this.provider;
+  }
+
   private createStrategy(): ITranslationStrategy {
     if (this.provider === 'ai' && this.apiKey) {
       return new GeminiStrategy(this.apiKey, this.modelName);
+    }
+    if (this.provider === 'deepseek' && this.apiKey) {
+      return new DeepSeekStrategy(this.apiKey, this.modelName);
     }
     return this.machineStrategy;
   }

@@ -17,11 +17,17 @@ export function activate(context: vscode.ExtensionContext) {
 
   const config = getConfig();
 
-  if (!config.geminiApiKey) {
+  if (config.translationProvider === 'ai' && !config.geminiApiKey) {
     vscode.window.showWarningMessage(
       "未配置 Gemini API Key，翻译功能将不可用。请在设置中配置 `logViewer.geminiApiKey`。",
     );
     Logger.error("Gemini API Key is not configured.");
+  }
+  if (config.translationProvider === 'deepseek' && !config.deepseekApiKey) {
+    vscode.window.showWarningMessage(
+      "未配置 DeepSeek API Key，翻译功能将不可用。请在设置中配置 `logViewer.deepseekApiKey`。",
+    );
+    Logger.error("DeepSeek API Key is not configured.");
   }
 
   // Initialize modules
@@ -36,9 +42,16 @@ export function activate(context: vscode.ExtensionContext) {
     oauthManager,
     config.auth.anonymous
   );
+  let apiKey = config.geminiApiKey;
+  let model = config.geminiModel;
+  if (config.translationProvider === 'deepseek') {
+    apiKey = config.deepseekApiKey;
+    model = config.deepseekModel;
+  }
+
   const translator = new Translator(
-    config.geminiApiKey,
-    config.geminiModel,
+    apiKey,
+    model,
     config.translationProvider,
   );
   
@@ -136,9 +149,16 @@ export function activate(context: vscode.ExtensionContext) {
         // Update components with new config
         treeProvider.updateConfig(newConfig);
         contentProvider.updateConfig(newConfig);
+        let apiKey = newConfig.geminiApiKey;
+        let model = newConfig.geminiModel;
+        if (newConfig.translationProvider === 'deepseek') {
+          apiKey = newConfig.deepseekApiKey;
+          model = newConfig.deepseekModel;
+        }
+
         translator.updateConfig(
-          newConfig.geminiApiKey,
-          newConfig.geminiModel,
+          apiKey,
+          model,
           newConfig.translationProvider
         );
         logPresenter.updateConfig(newConfig.wordWrapWidth);

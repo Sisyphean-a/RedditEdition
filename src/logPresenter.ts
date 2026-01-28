@@ -7,10 +7,11 @@ export class LogPresenter {
     this.wordWrapWidth = wordWrapWidth;
   }
 
-  public render(original: RedditPost, translated: TranslatedPost): string {
+  public render(original: RedditPost, translated: TranslatedPost, providerName?: string): string {
     const timestamp = new Date(original.created_utc * 1000).toLocaleString("zh-CN");
+    const providerInfo = providerName ? ` | 翻译源: ${providerName.toUpperCase()}` : "";
 
-    let log = `TIMESTAMP: ${timestamp} | REF: ${original.id}
+    let log = `TIMESTAMP: ${timestamp} | REF: ${original.id}${providerInfo}
 --------------------------------------------------------------------------------
 标题: ${translated.title}
 作者: ${original.author} | 评分: ${original.score} | 评论: ${original.num_comments}

@@ -33,4 +33,5 @@ export interface ITranslationService {
   translateTitles(titles: string[]): Promise<string[]>;
   translatePostFast(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost>;
   updateConfig(apiKey: string, modelName: string, provider: string): void;
+  getProviderName(): string;
 }
