@@ -40,16 +40,6 @@
           ],
           "description": "数据源列表"
         },
-        "logViewer.geminiApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Gemini API 密钥"
-        },
-        "logViewer.geminiModel": {
-          "type": "string",
-          "default": "gemini-2.5-flash-lite",
-          "description": "Gemini 模型版本 (如 gemini-1.5-flash)"
-        },
         "logViewer.deepseekApiKey": {
           "type": "string",
           "default": "",
@@ -60,15 +50,25 @@
           "default": "deepseek-chat",
           "description": "DeepSeek 模型版本 (如 deepseek-chat, deepseek-reasoner)"
         },
+        "logViewer.openRouterApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenRouter API Key"
+        },
+        "logViewer.openRouterModel": {
+          "type": "string",
+          "default": "qwen/qwen3-next-80b-a3b-instruct",
+          "description": "OpenRouter Model ID"
+        },
         "logViewer.translationProvider": {
           "type": "string",
           "enum": [
             "machine",
-            "ai",
-            "deepseek"
+            "deepseek",
+            "openrouter"
           ],
           "default": "machine",
-          "description": "翻译引擎: machine (Google/Proxy), ai (Gemini) 或 deepseek"
+          "description": "翻译引擎: machine, deepseek, openrouter"
         },
         "logViewer.cacheDuration": {
           "type": "number",

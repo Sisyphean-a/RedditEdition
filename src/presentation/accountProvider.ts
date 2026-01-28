@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { OAuthManager } from '../infrastructure/auth/oauthManager';
 import { RedditClient } from '../infrastructure/reddit/redditClient';
+import { TokenTracker } from '../infrastructure/utils/tokenTracker';
 
 export class AccountProvider implements vscode.TreeDataProvider<AccountItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<AccountItem | undefined | null | void> = new vscode.EventEmitter<AccountItem | undefined | null | void>();
@@ -8,8 +9,13 @@ export class AccountProvider implements vscode.TreeDataProvider<AccountItem> {
 
   constructor(
     private oauthManager: OAuthManager,
-    private client: RedditClient
-  ) {}
+    private client: RedditClient,
+    private tokenTracker?: TokenTracker
+  ) {
+    if (this.tokenTracker) {
+        this.tokenTracker.onDidChange(() => this.refresh());
+    }
+  }
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
@@ -78,6 +84,14 @@ export class AccountProvider implements vscode.TreeDataProvider<AccountItem> {
         title: 'Clear Cache'
     };
     items.push(cacheItem);
+
+    // Token Tracker
+    if (this.tokenTracker) {
+        const tokens = this.tokenTracker.totalTokens;
+        const tokenItem = new AccountItem(`本此会话预估消耗 Token: ${tokens}`, vscode.TreeItemCollapsibleState.None, 'graph', 'info');
+        tokenItem.tooltip = "基于 API 返回的 Usage 统计，重启后重置";
+        items.push(tokenItem);
+    }
 
     return items;
   }

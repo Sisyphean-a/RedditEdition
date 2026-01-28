@@ -1,7 +1,8 @@
 import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "../../domain/models";
 import { ITranslationService, TranslationProgress } from "../../domain/interfaces";
 import { Logger } from "../utils/logger";
-import { ITranslationStrategy, GeminiStrategy, MachineStrategy, DeepSeekStrategy } from "./translationStrategies";
+import { ITranslationStrategy, MachineStrategy, DeepSeekStrategy, OpenRouterStrategy } from "./translationStrategies";
+import { TokenTracker } from "../utils/tokenTracker";
 
 export class Translator implements ITranslationService {
   private strategy: ITranslationStrategy;
@@ -10,7 +11,8 @@ export class Translator implements ITranslationService {
   constructor(
     private apiKey: string, 
     private modelName: string, 
-    private provider: string = 'machine'
+    private provider: string = 'machine',
+    private tokenTracker?: TokenTracker
   ) {
     this.machineStrategy = new MachineStrategy(); // Always keep machine ready for fallback
     this.strategy = this.createStrategy();
@@ -29,18 +31,19 @@ export class Translator implements ITranslationService {
   }
 
   private createStrategy(): ITranslationStrategy {
-    if (this.provider === 'ai' && this.apiKey) {
-      return new GeminiStrategy(this.apiKey, this.modelName);
-    }
+
     if (this.provider === 'deepseek' && this.apiKey) {
       return new DeepSeekStrategy(this.apiKey, this.modelName);
+    }
+    if (this.provider === 'openrouter' && this.apiKey) {
+      return new OpenRouterStrategy(this.apiKey, this.modelName);
     }
     return this.machineStrategy;
   }
 
   async translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost> {
     try {
-      return await this.strategy.translatePost(post, comments);
+      return await this.strategy.translatePost(post, comments, (t) => this.tokenTracker?.addUsage(t));
     } catch (error) {
        Logger.error("Translation strategy failed, switching to fallback...", error);
        if (this.strategy !== this.machineStrategy) {
@@ -58,7 +61,7 @@ export class Translator implements ITranslationService {
     // 如果当前策略支持流式，使用流式；否则降级到机械翻译流式
     if (this.strategy.translatePostStream) {
       try {
-        return await this.strategy.translatePostStream(post, comments, onProgress);
+        return await this.strategy.translatePostStream(post, comments, onProgress, (t) => this.tokenTracker?.addUsage(t));
       } catch (error) {
         Logger.error("Stream translation failed, switching to fallback...", error);
       }

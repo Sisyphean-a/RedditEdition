@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 
 export interface Config {
   subreddits: string[];
-  geminiApiKey: string;
-  geminiModel: string;
   deepseekApiKey: string;
   deepseekModel: string;
+  openRouterApiKey: string;
+  openRouterModel: string;
   translationProvider: string;
   cacheDuration: number; // 分钟
   wordWrapWidth: number;
@@ -20,10 +20,10 @@ export function getConfig(): Config {
   const config = vscode.workspace.getConfiguration('logViewer');
   return {
     subreddits: config.get<string[]>('subreddits', ['programming']),
-    geminiApiKey: config.get<string>('geminiApiKey', ''),
-    geminiModel: config.get<string>('geminiModel', 'gemini-2.5-flash-lite'),
     deepseekApiKey: config.get<string>('deepseekApiKey', ''),
     deepseekModel: config.get<string>('deepseekModel', 'deepseek-chat'),
+    openRouterApiKey: config.get<string>('openRouterApiKey', ''),
+    openRouterModel: config.get<string>('openRouterModel', 'qwen/qwen3-next-80b-a3b-instruct'),
     translationProvider: config.get<string>('translationProvider', 'machine'),
     cacheDuration: config.get<number>('cacheDuration', 30),
     wordWrapWidth: config.get<number>('wordWrapWidth', 80),

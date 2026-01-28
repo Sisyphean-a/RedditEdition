@@ -6,11 +6,12 @@ import axios from "axios";
 
 
 export interface ITranslationStrategy {
-  translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost>;
+  translatePost(post: RedditPost, comments: RedditComment[], onUsage?: (tokens: number) => void): Promise<TranslatedPost>;
   translatePostStream?(
     post: RedditPost,
     comments: RedditComment[],
-    onProgress: (progress: TranslationProgress) => void
+    onProgress: (progress: TranslationProgress) => void,
+    onUsage?: (tokens: number) => void
   ): Promise<TranslatedPost>;
   translateTitles(titles: string[]): Promise<string[]>;
 }
@@ -23,7 +24,8 @@ export class DeepSeekStrategy implements ITranslationStrategy {
   async translatePostStream(
     post: RedditPost,
     comments: RedditComment[],
-    onProgress: (progress: TranslationProgress) => void
+    onProgress: (progress: TranslationProgress) => void,
+    onUsage?: (tokens: number) => void
   ): Promise<TranslatedPost> {
     const payload = {
       title: post.title,
@@ -73,6 +75,11 @@ export class DeepSeekStrategy implements ITranslationStrategy {
             }
         );
 
+        // Track usage
+        if (onUsage && response.data.usage?.total_tokens) {
+            onUsage(response.data.usage.total_tokens);
+        }
+
         const contentRaw = response.data.choices?.[0]?.message?.content || "{}";
         const content = contentRaw.replace(/```json\n?|\n?```/g, "").trim();
 
@@ -99,7 +106,7 @@ export class DeepSeekStrategy implements ITranslationStrategy {
     }
   }
 
-  async translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost> {
+  async translatePost(post: RedditPost, comments: RedditComment[], onUsage?: (tokens: number) => void): Promise<TranslatedPost> {
     const payload = {
       title: post.title,
       selftext: post.selftext,
@@ -144,6 +151,11 @@ export class DeepSeekStrategy implements ITranslationStrategy {
           timeout: 60000 // 60s timeout
         }
       );
+
+      // Track usage
+      if (onUsage && response.data.usage?.total_tokens) {
+          onUsage(response.data.usage.total_tokens);
+      }
 
       const content = response.data.choices?.[0]?.message?.content || "{}";
       return JSON.parse(content) as TranslatedPost;
@@ -201,6 +213,118 @@ export class DeepSeekStrategy implements ITranslationStrategy {
   }
 }
 
+export class OpenRouterStrategy implements ITranslationStrategy {
+  private readonly baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
+
+  constructor(private apiKey: string, private modelName: string) {}
+
+  async translatePost(post: RedditPost, comments: RedditComment[], onUsage?: (tokens: number) => void): Promise<TranslatedPost> {
+    const payload = {
+      title: post.title,
+      selftext: post.selftext,
+      comments: comments.slice(0, 10).map((c) => this.simplifyComment(c, 0, 3)),
+    };
+
+    const prompt = `
+    将以下 Reddit 帖子翻译成中文，保持口语化风格。
+    只返回 JSON，格式如下：
+    {
+      "title": "翻译后的标题",
+      "selftext": "翻译后的正文",
+      "comments": [
+        {
+          "author": "保留原作者名",
+          "body": "翻译后的评论",
+          "replies": [...]
+        }
+      ]
+    }
+    
+    原文：
+    ${JSON.stringify(payload)}
+    `;
+
+    try {
+      const response = await axios.post(
+        this.baseUrl,
+        {
+          model: this.modelName,
+          messages: [
+            { role: "user", content: prompt }
+          ],
+          response_format: { type: 'json_object' }
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
+          timeout: 60000
+        }
+      );
+
+      // Track usage
+      if (onUsage && response.data.usage?.total_tokens) {
+          onUsage(response.data.usage.total_tokens);
+      }
+
+      const content = response.data.choices?.[0]?.message?.content || "{}";
+      const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
+      return JSON.parse(cleaned) as TranslatedPost;
+    } catch (error: any) {
+        Logger.error(`OpenRouter translation failed: ${error.message}`);
+        throw error;
+    }
+  }
+
+  async translateTitles(titles: string[]): Promise<string[]> {
+      const prompt = `
+        Translate the following Reddit titles to Chinese (Simplified).
+        Return a JSON object with a 'titles' key containing the array of strings.
+        Example: { "titles": ["Title 1 CN", "Title 2 CN"] }
+        
+        Titles: ${JSON.stringify(titles)}
+        `;
+      try {
+        const response = await axios.post(
+            this.baseUrl,
+            {
+                model: this.modelName,
+                messages: [
+                    { role: "user", content: prompt }
+                ],
+                response_format: { type: 'json_object' }
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
+                },
+                timeout: 30000
+            }
+        );
+        const content = response.data.choices?.[0]?.message?.content || "{}";
+        const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
+        const result = JSON.parse(cleaned);
+        return result.titles || [];
+      } catch (e) {
+          throw e; 
+      }
+  }
+
+  private simplifyComment(comment: RedditComment, depth: number, maxDepth: number): any {
+    if (depth >= maxDepth) return null;
+    const simplified: any = { author: comment.author, body: comment.body };
+    if (comment.replies && comment.replies.length > 0) {
+      const replies = comment.replies
+        .map((r) => this.simplifyComment(r, depth + 1, maxDepth))
+        .filter((r) => r !== null);
+      if (replies.length > 0) simplified.replies = replies;
+    }
+    return simplified;
+  }
+}
+
 export class GeminiStrategy implements ITranslationStrategy {
   private genAI: GoogleGenerativeAI;
 
@@ -208,7 +332,7 @@ export class GeminiStrategy implements ITranslationStrategy {
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
-  async translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost> {
+  async translatePost(post: RedditPost, comments: RedditComment[], onUsage?: (tokens: number) => void): Promise<TranslatedPost> {
     const model = this.genAI.getGenerativeModel({ model: this.modelName });
     const payload = {
       title: post.title,
@@ -237,6 +361,12 @@ export class GeminiStrategy implements ITranslationStrategy {
 
     try {
       const result = await model.generateContent(prompt);
+      
+      // Track usage if available in metadata
+      if (onUsage && result.response.usageMetadata?.totalTokenCount) {
+          onUsage(result.response.usageMetadata.totalTokenCount);
+      }
+
       const text = result.response.text();
       const jsonStr = text.replace(/```json\n?|\n?```/g, "").trim();
       return JSON.parse(jsonStr) as TranslatedPost;
@@ -277,7 +407,7 @@ export class GeminiStrategy implements ITranslationStrategy {
 }
 
 export class MachineStrategy implements ITranslationStrategy {
-    async translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost> {
+    async translatePost(post: RedditPost, comments: RedditComment[], onUsage?: (tokens: number) => void): Promise<TranslatedPost> {
         const [title, selftext] = await Promise.all([
             this.translateText(post.title),
             this.translateText(post.selftext, 5000),
@@ -303,7 +433,8 @@ export class MachineStrategy implements ITranslationStrategy {
     async translatePostStream(
         post: RedditPost,
         comments: RedditComment[],
-        onProgress: (progress: TranslationProgress) => void
+        onProgress: (progress: TranslationProgress) => void,
+        onUsage?: (tokens: number) => void
     ): Promise<TranslatedPost> {
         const result: TranslatedPost = {
             title: post.title,

@@ -15,7 +15,9 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     private cache: CacheManager,
     private presenter: LogPresenter,
     private config: Config,
-  ) {}
+  ) {
+    this.updateTranslator();
+  }
 
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
     const pathParts = uri.path.split("/");
@@ -79,5 +81,25 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
   updateConfig(config: Config) {
     this.config = config;
     this.presenter.updateConfig(config.wordWrapWidth);
+    this.updateTranslator();
+  }
+
+  private updateTranslator() {
+    let apiKey = '';
+    let model = '';
+    
+    switch (this.config.translationProvider) {
+
+      case 'deepseek':
+        apiKey = this.config.deepseekApiKey;
+        model = this.config.deepseekModel;
+        break;
+      case 'openrouter':
+        apiKey = this.config.openRouterApiKey;
+        model = this.config.openRouterModel;
+        break;
+    }
+
+    this.translator.updateConfig(apiKey, model, this.config.translationProvider);
   }
 }
