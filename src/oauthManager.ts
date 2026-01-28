@@ -79,8 +79,11 @@ export class OAuthManager {
 
       // Exchange token
       await this.exchangeToken(code, clientId, redirectUri);
+
+      // Validate token
+      const username = await this.validateSession();
       
-      vscode.window.showInformationMessage('Reddit 登录成功！');
+      vscode.window.showInformationMessage(`Reddit 登录成功！欢迎, ${username}`);
     } catch (error) {
       Logger.error('Login failed: ' + error);
       vscode.window.showErrorMessage('登录失败: ' + error);
@@ -117,11 +120,31 @@ export class OAuthManager {
     const response = await axios.post('https://www.reddit.com/api/v1/access_token', params.toString(), {
       headers: {
         'Authorization': `Basic ${Buffer.from(clientId + ':').toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'vscode-reddit-edition/0.1.0'
       }
     });
 
     await this.handleTokenResponse(response.data);
+  }
+
+  private async validateSession(): Promise<string> {
+    if (!this.accessToken) {
+      throw new Error('No access token available for validation');
+    }
+
+    try {
+      const response = await axios.get('https://oauth.reddit.com/api/v1/me', {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'User-Agent': 'vscode-reddit-edition/0.1.0'
+        }
+      });
+      return response.data.name;
+    } catch (error) {
+      Logger.error('Session validation failed: ' + error);
+      throw new Error('Token 验证失败，无法获取用户信息。请检查授权范围或网络连接。');
+    }
   }
 
   private async refreshToken(refreshToken: string) {
@@ -139,7 +162,8 @@ export class OAuthManager {
     const response = await axios.post('https://www.reddit.com/api/v1/access_token', params.toString(), {
       headers: {
         'Authorization': `Basic ${Buffer.from(clientId + ':').toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'vscode-reddit-edition/0.1.0'
       }
     });
 

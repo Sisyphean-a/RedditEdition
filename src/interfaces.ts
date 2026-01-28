@@ -13,7 +13,7 @@ export interface IRedditClient {
 
   checkAuth(): Promise<string | null>;
   setAnonymousMode(enabled: boolean): void;
-  updateCookie(newCookie: string): void;
+  isAnonymousMode(): Promise<boolean>;
 }
 
 export interface ITranslationService {

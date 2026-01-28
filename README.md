@@ -8,7 +8,9 @@
 - **全中文体验**：
   - **AI 翻译 (推荐)**：使用 Gemini 2.0 Flash 模型，支持上下文理解，翻译地道。
   - **由 Google 翻译提供支持**：内置 Google 翻译引擎作为备选或快速浏览方案。
-- **灵活认证**：支持 匿名模式、OAuth2 安全登录 (推荐) 和 Cookie (传统) 三种模式。
+- **便捷管理**：新增 **侧边栏账户视图**，一键管理登录状态、缓存和设置。
+- **灵活认证**：支持 **匿名模式 (Guest)** 和 **OAuth2 安全登录**。
+  - *注：已移除不稳定的 Cookie 认证方式。*
 - **智能防风控**：内置令牌桶限流器和智能缓存系统，降低 API 封禁风险。
 - **深度浏览**：支持 Reddit 嵌套评论的树状展示，清晰还原讨论脉络。
 
@@ -22,14 +24,14 @@
 *   **Log Viewer: Gemini Api Key**: 填入你的 Key (必填)。
 *   **Log Viewer: Subreddits**: 添加你想看的版块，如 `programming`, `technology` (默认已预设)。
 
-### 3. 选择认证方式 (三选一)
+### 3. 选择认证方式
 
 为了获得最佳体验（访问 NSFW 内容、查看个性化订阅），推荐登录。
 
 #### 方式 A: 匿名/游客模式 (默认)
 *   **优点**: 无需配置，即装即用。
 *   **缺点**: 无法查看 NSFW 内容，API 速率限制较严。
-*   **操作**: 默认开启。如果之前登录过，可运行命令 `Log Viewer: 切换匿名模式`。
+*   **操作**: 默认开启。可在侧边栏“账户信息”中一键切换。
 
 #### 方式 B: OAuth2 登录 (推荐)
 *   **优点**: 安全，速率限制更宽松，支持个性化首页。
@@ -39,11 +41,18 @@
     3. `redirect uri` 填写 `http://localhost:54321/callback`。
     4. 创建后，将获得一个 **Client ID** (应用名称下方的字符串)。
     5. 在 VS Code 设置中填入 `Log Viewer > Auth: Client Id`。
-    6. 按 `F1` 运行命令 `Log Viewer: 登录 (OAuth2)`，并在浏览器中授权。
+    6. 点击侧边栏“账户信息”中的 **登录 (OAuth2)** 按钮，并在浏览器中授权。
 
-#### 方式 C: Cookie 认证 (传统)
-*   **适用**: 不想创建 App 的高级用户。
-*   **操作**: 在浏览器登录 Reddit，抓取 `reddit_session` Cookie，填入设置 `Log Viewer: Reddit Cookie`。运行 `Log Viewer: 验证 Cookie` 激活。
+## 🖥️ 界面指南
+
+### 侧边栏：账户信息 (Account Info)
+新的侧边栏视图，提供便捷的控制面板：
+- **用户状态**：显示当前是「游客」还是「已认证用户」。
+- **快捷操作**：
+  - **登录/登出**：一键管理 OAuth 状态。
+  - **匿名模式切换**：快速切换身份。
+  - **清除缓存**：遇到内容问题时，点此重置。
+  - **设置**：快速直达扩展设置页。
 
 ## ⚙️ 详细配置
 
@@ -66,7 +75,7 @@
 - **登录 (OAuth2)** (`Login`): 启动 OAuth2 授权流程。
 - **切换匿名模式**: 在登录和游客状态间快速切换。
 - **清除缓存**: 删除所有已下载的翻译缓存。
-- **验证 Cookie**: 检查并激活 Cookie 认证。
+- **刷新账户状态**: 手动刷新侧边栏状态。
 
 ## 📝 常见问题
 
@@ -77,7 +86,7 @@ A: 首次加载帖子需要调用 AI 或翻译接口，通常需要 2-5 秒。�
 A: 确保你的 Reddit App Redirect URI 严格设置为 `http://localhost:54321/callback`。
 
 **Q: 如何看 NSFW 内容？**
-A: 必须使用 **OAuth2 登录** 或 **Cookie 认证**，并且在 Reddit 网页端设置中开启 "I am over 18"。
+A: 必须使用 **OAuth2 登录**，并且在 Reddit 网页端设置中开启 "I am over 18"。
 
 ## 🏗️ 技术架构 (2.0 重构版)
 
@@ -85,8 +94,9 @@ A: 必须使用 **OAuth2 登录** 或 **Cookie 认证**，并且在 Reddit 网�
 
 *   **Domain Layer**: 定义核心业务实体 (`RedditPost`) 和接口 (`IRedditClient`, `ITranslationService`)，不依赖任何外部框架。
 *   **Infrastructure Layer**: 
-    *   `RedditClient`: 实现 API 调用。
+    *   `RedditClient`: 实现 API 调用，支持 OAuth2/匿名双模。
     *   `Translator`: 采用**策略模式**，动态切换 Gemini AI 或 Google 翻译引擎。
 *   **Presentation Layer**: 
     *   `LogPresenter`: 专注处理日志格式化与渲染 (View Logic)。
+    *   `AccountProvider`: 管理侧边栏账户视图状态。
     *   `Providers`: 适配 VS Code API。

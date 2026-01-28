@@ -8,7 +8,6 @@ import { RedditPost, RedditComment } from './models';
 export class RedditClient implements IRedditClient {
   constructor(
     private limiter: RateLimiter, 
-    private cookie: string,
     private oauthManager?: OAuthManager,
     private isAnonymous: boolean = false
   ) {}
@@ -17,13 +16,23 @@ export class RedditClient implements IRedditClient {
     this.isAnonymous = enabled;
   }
 
-  updateCookie(newCookie: string) {
-    this.cookie = newCookie;
+  async isAnonymousMode(): Promise<boolean> {
+      return this.isAnonymous;
+  }
+
+  private async getBaseUrl(): Promise<string> {
+    if (this.oauthManager) {
+      const token = await this.oauthManager.getAccessToken();
+      if (token) {
+        return 'https://oauth.reddit.com';
+      }
+    }
+    return 'https://www.reddit.com';
   }
 
   private async getHeaders() {
     const headers: any = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      'User-Agent': 'vscode-reddit-edition/0.1.0'
     };
 
     if (this.isAnonymous) {
@@ -33,13 +42,9 @@ export class RedditClient implements IRedditClient {
     if (this.oauthManager) {
       const token = await this.oauthManager.getAccessToken();
       if (token) {
-        headers['Authorization'] = `bearer ${token}`;
+        headers['Authorization'] = `Bearer ${token}`;
         return headers;
       }
-    }
-
-    if (this.cookie) {
-      headers['Cookie'] = this.cookie;
     }
 
     return headers;
@@ -50,7 +55,8 @@ export class RedditClient implements IRedditClient {
     after: string | null;
   }> {
     await this.limiter.acquire();
-    const url = `https://www.reddit.com/r/${subreddit}/hot.json?limit=25${after ? `&after=${after}` : ''}`;
+    const baseUrl = await this.getBaseUrl();
+    const url = `${baseUrl}/r/${subreddit}/hot.json?limit=25${after ? `&after=${after}` : ''}`;
     
     try {
       const headers = await this.getHeaders();
@@ -82,7 +88,10 @@ export class RedditClient implements IRedditClient {
     comments: RedditComment[];
   }> {
     await this.limiter.acquire();
-    const url = `https://www.reddit.com/r/${subreddit}/comments/${postId}.json`;
+    // For oauth.reddit.com, the path structure is slightly different (no .json extension needed strictly, but good for compatibility)
+    // However, oauth endpoint paths are generally identical to www.
+    const baseUrl = await this.getBaseUrl();
+    const url = `${baseUrl}/r/${subreddit}/comments/${postId}.json`;
 
     try {
       const headers = await this.getHeaders();
@@ -112,7 +121,9 @@ export class RedditClient implements IRedditClient {
 
   async checkAuth(): Promise<string | null> {
     await this.limiter.acquire();
-    const url = 'https://www.reddit.com/api/v1/me.json';
+    const baseUrl = await this.getBaseUrl();
+    // api/v1/me works on both generally, but let's be consistent
+    const url = `${baseUrl}/api/v1/me`;
 
     try {
       const headers = await this.getHeaders();

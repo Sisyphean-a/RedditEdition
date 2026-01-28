@@ -9,6 +9,7 @@ import { LogContentProvider } from "./contentProvider";
 import { Logger } from "./logger";
 import { OAuthManager } from "./oauthManager";
 import { LogPresenter } from "./logPresenter";
+import { AccountProvider } from "./accountProvider";
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.initialize(context, "Log Viewer Debug");
@@ -32,7 +33,6 @@ export function activate(context: vscode.ExtensionContext) {
   const cache = new CacheManager(context.globalState, config.cacheDuration);
   const client = new RedditClient(
     limiter, 
-    config.redditCookie, 
     oauthManager,
     config.auth.anonymous
   );
@@ -58,9 +58,11 @@ export function activate(context: vscode.ExtensionContext) {
     logPresenter,
     config,
   );
+  const accountProvider = new AccountProvider(oauthManager, client);
 
-  // Register TreeView
+  // Register TreeViews
   vscode.window.registerTreeDataProvider("logViewer", treeProvider);
+  vscode.window.registerTreeDataProvider("reddit-account", accountProvider);
 
   // Register virtual document scheme
   vscode.workspace.registerTextDocumentContentProvider(
@@ -98,39 +100,31 @@ export function activate(context: vscode.ExtensionContext) {
         "logViewer",
       );
     }),
-    vscode.commands.registerCommand("logViewer.checkAuth", async () => {
-      vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: "正在验证 Reddit Cookie...",
-          cancellable: false,
-        },
-        async () => {
-          const username = await client.checkAuth();
-          if (username) {
-            vscode.window.showInformationMessage(
-              `Reddit 认证成功: 已登录为 ${username}`,
-            );
-          } else {
-            vscode.window.showWarningMessage(
-              "Reddit 认证失败: Cookie 无效或过期，将以游客模式运行",
-            );
-          }
-        },
-      );
+    vscode.commands.registerCommand("logViewer.login", async () => {
+        await oauthManager.login();
+        accountProvider.refresh();
+        treeProvider.refresh();
     }),
-    vscode.commands.registerCommand("logViewer.login", () => oauthManager.login()),
-    vscode.commands.registerCommand("logViewer.logout", () => oauthManager.logout()),
+    vscode.commands.registerCommand("logViewer.logout", async () => {
+        await oauthManager.logout();
+        accountProvider.refresh();
+        treeProvider.refresh();
+    }),
     vscode.commands.registerCommand("logViewer.toggleAnonymous", async () => {
       const current = getConfig().auth.anonymous;
       await vscode.workspace.getConfiguration('logViewer').update('auth.anonymous', !current, true);
       const newState = !current;
+      accountProvider.refresh();
+      treeProvider.refresh();
       if (newState) {
         vscode.window.showInformationMessage('已切换到匿名模式 (Anonymous Mode)');
       } else {
         vscode.window.showInformationMessage('已关闭匿名模式');
       }
     }),
+    vscode.commands.registerCommand("logViewer.refreshAccount", () =>
+      accountProvider.refresh()
+    ),
   );
 
   // Listen for configuration changes
@@ -154,12 +148,10 @@ export function activate(context: vscode.ExtensionContext) {
           treeProvider.refresh();
         }
 
-        if (e.affectsConfiguration("logViewer.redditCookie")) {
-           client.updateCookie(newConfig.redditCookie);
-        }
-
         if (e.affectsConfiguration("logViewer.auth.anonymous")) {
            client.setAnonymousMode(newConfig.auth.anonymous);
+           accountProvider.refresh();
+           treeProvider.refresh();
         }
       }
     }),

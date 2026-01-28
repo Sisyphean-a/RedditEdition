@@ -15,11 +15,6 @@
     "configuration": {
       "title": "Log Viewer",
       "properties": {
-        "logViewer.redditCookie": {
-          "type": "string",
-          "default": "",
-          "description": "Cookie 认证信息 (传统方式)"
-        },
         "logViewer.auth.clientId": {
           "type": "string",
           "default": "",
@@ -88,6 +83,10 @@
     "views": {
       "log-viewer-container": [
         {
+          "id": "reddit-account",
+          "name": "账户信息"
+        },
+        {
           "id": "logViewer",
           "name": "日志文件"
         }
@@ -105,7 +104,8 @@
       },
       {
         "command": "logViewer.clearCache",
-        "title": "清除缓存"
+        "title": "清除缓存",
+        "icon": "$(trash)"
       },
       {
         "command": "logViewer.loadMorePosts",
@@ -114,11 +114,6 @@
       {
         "command": "logViewer.loadMoreComments",
         "title": "加载更多评论"
-      },
-      {
-        "command": "logViewer.checkAuth",
-        "title": "验证 Cookie",
-        "icon": "$(verified)"
       },
       {
         "command": "logViewer.openSettings",
@@ -139,22 +134,22 @@
         "command": "logViewer.toggleAnonymous",
         "title": "切换匿名模式 (Guest Mode)",
         "icon": "$(eye)"
+      },
+      {
+        "command": "logViewer.refreshAccount",
+        "title": "刷新账户状态",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "logViewer.openSettings",
+          "command": "logViewer.refreshAccount",
           "group": "navigation",
-          "when": "view == logViewer"
+          "when": "view == reddit-account"
         },
         {
           "command": "logViewer.refreshAll",
-          "group": "navigation",
-          "when": "view == logViewer"
-        },
-        {
-          "command": "logViewer.clearCache",
           "group": "navigation",
           "when": "view == logViewer"
         }
@@ -175,6 +170,26 @@
         {
           "command": "logViewer.loadMorePosts",
           "when": "viewItem == loadMore",
+          "group": "inline"
+        },
+        {
+          "command": "logViewer.login",
+          "when": "view == reddit-account && viewItem == login",
+          "group": "inline"
+        },
+        {
+          "command": "logViewer.logout",
+          "when": "view == reddit-account && viewItem == logout",
+          "group": "inline"
+        },
+        {
+          "command": "logViewer.openSettings",
+          "when": "view == reddit-account && viewItem == setting",
+          "group": "inline"
+        },
+        {
+          "command": "logViewer.clearCache",
+          "when": "view == reddit-account && viewItem == setting",
           "group": "inline"
         }
       ]
