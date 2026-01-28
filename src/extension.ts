@@ -8,6 +8,7 @@ import { RedditTreeProvider } from "./treeProvider";
 import { LogContentProvider } from "./contentProvider";
 import { Logger } from "./logger";
 import { OAuthManager } from "./oauthManager";
+import { LogPresenter } from "./logPresenter";
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.initialize(context, "Log Viewer Debug");
@@ -40,6 +41,8 @@ export function activate(context: vscode.ExtensionContext) {
     config.geminiModel,
     config.translationProvider,
   );
+  
+  const logPresenter = new LogPresenter(config.wordWrapWidth);
 
   // Register Providers
   const treeProvider = new RedditTreeProvider(
@@ -52,6 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
     client,
     translator,
     cache,
+    logPresenter,
     config,
   );
 
@@ -138,6 +142,12 @@ export function activate(context: vscode.ExtensionContext) {
         // Update components with new config
         treeProvider.updateConfig(newConfig);
         contentProvider.updateConfig(newConfig);
+        translator.updateConfig(
+          newConfig.geminiApiKey,
+          newConfig.geminiModel,
+          newConfig.translationProvider
+        );
+        logPresenter.updateConfig(newConfig.wordWrapWidth);
 
         // If subreddits changed, refresh tree
         if (e.affectsConfiguration("logViewer.subreddits")) {

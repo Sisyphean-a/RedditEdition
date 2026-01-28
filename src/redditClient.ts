@@ -2,25 +2,10 @@ import axios from 'axios';
 import { RateLimiter } from './rateLimiter';
 import { OAuthManager } from './oauthManager';
 
-export interface RedditPost {
-  id: string;
-  title: string;
-  selftext: string;
-  author: string;
-  score: number;
-  created_utc: number;
-  num_comments: number;
-}
+import { IRedditClient } from './interfaces';
+import { RedditPost, RedditComment } from './models';
 
-export interface RedditComment {
-  id: string;
-  author: string;
-  body: string;
-  score: number;
-  replies: RedditComment[];
-}
-
-export class RedditClient {
+export class RedditClient implements IRedditClient {
   constructor(
     private limiter: RateLimiter, 
     private cookie: string,

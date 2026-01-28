@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
-import { RedditClient, RedditPost } from "./redditClient";
-import { Translator, TranslatedPost } from "./translator";
+import { RedditClient } from "./redditClient";
+import { RedditPost,  } from "./models";
+import { Translator } from "./translator";
+import { TranslatedPost } from "./models";
 import { CacheManager } from "./cache";
 import { Config } from "./config";
 

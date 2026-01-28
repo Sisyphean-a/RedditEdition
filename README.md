@@ -1,56 +1,92 @@
 # VS Code Stealth Reader (Reddit Edition)
 
-这是一个伪装成日志查看器的 Reddit 阅读扩展。它将 Reddit 的内容拉取并使用 Google Gemini 翻译成中文，以系统日志的形式展示，让你在工作时“隐蔽”地浏览 Reddit。
+这是一个伪装成日志查看器的 Reddit 阅读扩展。它将 Reddit 的内容拉取并自动翻译成中文，以 `.log` 文件形式展示，让你在工作时“隐蔽”地浏览 Reddit。
 
-## ✨ 特性
+## ✨ 核心特性
 
-- **隐蔽阅读**：UI 伪装成文件树和日志文件，完全禁用 Webview，外观与普通服务器日志无异。
-- **全中文体验**：利用 Gemini 2.0 Flash 模型，将所有帖子标题、正文及评论翻译为地道的中文。
-- **智能防风控**：内置令牌桶限流器（请求间隔 >2秒）和智能缓存系统，降低 API 封禁风险。
-- **层级评论**：支持 Reddit 嵌套评论的树状展示，清晰还原讨论脉络。
+- **隐蔽阅读**：UI 伪装成普通日志文件，完全禁用 Webview，外观与服务器日志无异。
+- **全中文体验**：
+  - **AI 翻译 (推荐)**：使用 Gemini 2.0 Flash 模型，支持上下文理解，翻译地道。
+  - **由 Google 翻译提供支持**：内置 Google 翻译引擎作为备选或快速浏览方案。
+- **灵活认证**：支持 匿名模式、OAuth2 安全登录 (推荐) 和 Cookie (传统) 三种模式。
+- **智能防风控**：内置令牌桶限流器和智能缓存系统，降低 API 封禁风险。
+- **深度浏览**：支持 Reddit 嵌套评论的树状展示，清晰还原讨论脉络。
 
 ## 🚀 快速开始
 
-### 1. 获取 Gemini API Key
-
-前往 [Google AI Studio](https://aistudio.google.com/) 免费获取 API Key。
+### 1. 准备工作
+前往 [Google AI Studio](https://aistudio.google.com/) 免费获取 **Gemini API Key**。这是翻译功能的核心。
 
 ### 2. 配置扩展
+打开 VS Code 设置 (`Ctrl+,`)，搜索 `logViewer`：
+*   **Log Viewer: Gemini Api Key**: 填入你的 Key (必填)。
+*   **Log Viewer: Subreddits**: 添加你想看的版块，如 `programming`, `technology` (默认已预设)。
 
-安装插件后，打开 VS Code 设置（`Ctrl+,`），搜索 `logViewer` 进行配置：
+### 3. 选择认证方式 (三选一)
 
-- **Log Viewer: Gemini Api Key**: 填入你的 Gemini API Key（必须）。
-- **Log Viewer: Subreddits**: 添加你想订阅的 Subreddit 名称（如 `programming`, `technology`）。
-- **Log Viewer: Reddit Cookie** (可选): 如果需要访问 NSFW 内容或个别受限社区，需填入你的 Reddit Cookie。
+为了获得最佳体验（访问 NSFW 内容、查看个性化订阅），推荐登录。
 
-### 3. 开始摸鱼
+#### 方式 A: 匿名/游客模式 (默认)
+*   **优点**: 无需配置，即装即用。
+*   **缺点**: 无法查看 NSFW 内容，API 速率限制较严。
+*   **操作**: 默认开启。如果之前登录过，可运行命令 `Log Viewer: 切换匿名模式`。
 
-1.  点击活动栏（Activity Bar）上的 **Log Viewer** 图标（通常在侧边栏最下方，图标是一个输出框）。
-2.  展开左侧的 Subreddit 文件夹。
-3.  点击帖子（显示为 `.log` 文件），右侧编辑器将自动打开并显示翻译好的内容。
+#### 方式 B: OAuth2 登录 (推荐)
+*   **优点**: 安全，速率限制更宽松，支持个性化首页。
+*   **操作**:
+    1. 前往 [Reddit Apps](https://www.reddit.com/prefs/apps) 创建一个应用。
+    2. 类型选择 **installed app**。
+    3. `redirect uri` 填写 `http://localhost:54321/callback`。
+    4. 创建后，将获得一个 **Client ID** (应用名称下方的字符串)。
+    5. 在 VS Code 设置中填入 `Log Viewer > Auth: Client Id`。
+    6. 按 `F1` 运行命令 `Log Viewer: 登录 (OAuth2)`，并在浏览器中授权。
+
+#### 方式 C: Cookie 认证 (传统)
+*   **适用**: 不想创建 App 的高级用户。
+*   **操作**: 在浏览器登录 Reddit，抓取 `reddit_session` Cookie，填入设置 `Log Viewer: Reddit Cookie`。运行 `Log Viewer: 验证 Cookie` 激活。
 
 ## ⚙️ 详细配置
 
-| 配置项                    | 说明                                   | 默认值                  |
-| :------------------------ | :------------------------------------- | :---------------------- |
-| `logViewer.geminiApiKey`  | Google Gemini API 密钥，用于翻译服务。 | `""`                    |
-| `logViewer.subreddits`    | 订阅的 Subreddit 列表。                | `["programming"]`       |
-| `logViewer.redditCookie`  | 用于 Reddit 认证的 Cookie 字符串。     | `""`                    |
-| `logViewer.geminiModel`   | 使用的 Gemini 模型版本。               | `gemini-2.5-flash-lite` |
-| `logViewer.cacheDuration` | 内容缓存时长（分钟）。                 | `30`                    |
-| `logViewer.wordWrapWidth` | 生成日志文件时的硬换行宽度。           | `80`                    |
+| 配置项 | 说明 | 默认值 |
+| :--- | :--- | :--- |
+| `logViewer.geminiApiKey` | Gemini API 密钥 (必填) | `""` |
+| `logViewer.subreddits` | 订阅列表 | `["programming"]` |
+| `logViewer.translationProvider` | 翻译引擎: `machine` (Google/Proxy) 或 `ai` (Gemini) | `machine` |
+| `logViewer.geminiModel` | Gemini 模型版本 | `gemini-2.5-flash-lite` |
+| `logViewer.auth.clientId` | OAuth2 Client ID (用于登录) | `""` |
+| `logViewer.auth.anonymous` | 是否强制开启匿名模式 | `false` |
+| `logViewer.cacheDuration` | 内容缓存时长（分钟） | `30` |
+| `logViewer.wordWrapWidth` | 硬换行宽度 (字符) | `80` |
 
-## 🛠️ 命令
+## 🛠️ 常用命令
 
-按 `F1` 或 `Ctrl+Shift+P` 打开命令面板，输入 `Log Viewer`：
+按 `F1` 输入 `Log Viewer`：
 
-- **Log Viewer: 刷新日志** (`Refresh Logs`): 刷新当前选中板块的帖子列表。
-- **Log Viewer: 刷新所有日志** (`Refresh All Logs`): 刷新所有订阅板块。
-- **Log Viewer: 清除缓存** (`Clear Cache`): 清除所有已下载的帖子和翻译缓存。
-- **Log Viewer: 设置** (`Open Settings`): 快速打开扩展设置页面。
+- **刷新日志** (`Refresh Logs`): 刷新当前列表。
+- **登录 (OAuth2)** (`Login`): 启动 OAuth2 授权流程。
+- **切换匿名模式**: 在登录和游客状态间快速切换。
+- **清除缓存**: 删除所有已下载的翻译缓存。
+- **验证 Cookie**: 检查并激活 Cookie 认证。
 
-## 📝 注意事项
+## 📝 常见问题
 
-- 本插件依赖 Google Gemini 进行翻译，请确保你的网络环境可以连接到 Google API。
-- 首次加载帖子时需要进行翻译，耗时可能在 3-10 秒左右，请耐心等待。
-- 为了模拟真实日志，所有内容均为纯文本渲染，不支持图片显示（图片往往会导致摸鱼暴露）。
+**Q: 为什么翻译很慢？**
+A: 首次加载帖子需要调用 AI 或翻译接口，通常需要 2-5 秒。内容会自动缓存，再次打开即秒开。
+
+**Q: 登录后无法回调 (Localhost refused)？**
+A: 确保你的 Reddit App Redirect URI 严格设置为 `http://localhost:54321/callback`。
+
+**Q: 如何看 NSFW 内容？**
+A: 必须使用 **OAuth2 登录** 或 **Cookie 认证**，并且在 Reddit 网页端设置中开启 "I am over 18"。
+
+## 🏗️ 技术架构 (2.0 重构版)
+
+本项目遵循 **Clean Architecture** 原则进行设计：
+
+*   **Domain Layer**: 定义核心业务实体 (`RedditPost`) 和接口 (`IRedditClient`, `ITranslationService`)，不依赖任何外部框架。
+*   **Infrastructure Layer**: 
+    *   `RedditClient`: 实现 API 调用。
+    *   `Translator`: 采用**策略模式**，动态切换 Gemini AI 或 Google 翻译引擎。
+*   **Presentation Layer**: 
+    *   `LogPresenter`: 专注处理日志格式化与渲染 (View Logic)。
+    *   `Providers`: 适配 VS Code API。
