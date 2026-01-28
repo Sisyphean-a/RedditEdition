@@ -25,7 +25,11 @@ export function activate(context: vscode.ExtensionContext) {
   const limiter = new RateLimiter();
   const cache = new CacheManager(context.globalState, config.cacheDuration);
   const client = new RedditClient(limiter, config.redditCookie);
-  const translator = new Translator(config.geminiApiKey, config.geminiModel);
+  const translator = new Translator(
+    config.geminiApiKey,
+    config.geminiModel,
+    config.translationProvider,
+  );
 
   // Register Providers
   const treeProvider = new RedditTreeProvider(

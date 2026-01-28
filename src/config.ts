@@ -5,6 +5,7 @@ export interface Config {
   subreddits: string[];
   geminiApiKey: string;
   geminiModel: string;
+  translationProvider: string;
   cacheDuration: number; // 分钟
   wordWrapWidth: number;
 }
@@ -16,6 +17,7 @@ export function getConfig(): Config {
     subreddits: config.get<string[]>('subreddits', ['programming']),
     geminiApiKey: config.get<string>('geminiApiKey', ''),
     geminiModel: config.get<string>('geminiModel', 'gemini-2.5-flash-lite'),
+    translationProvider: config.get<string>('translationProvider', 'machine'),
     cacheDuration: config.get<number>('cacheDuration', 30),
     wordWrapWidth: config.get<number>('wordWrapWidth', 80)
   };
