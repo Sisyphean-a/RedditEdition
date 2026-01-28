@@ -18,7 +18,22 @@
         "logViewer.redditCookie": {
           "type": "string",
           "default": "",
-          "description": "数据源认证信息"
+          "description": "Cookie 认证信息 (传统方式)"
+        },
+        "logViewer.auth.clientId": {
+          "type": "string",
+          "default": "",
+          "description": "Reddit App Client ID (OAuth2 认证方式)"
+        },
+        "logViewer.auth.redirectUri": {
+          "type": "string",
+          "default": "http://localhost:54321/callback",
+          "description": "OAuth2 回调地址 (需与 Reddit App 设置一致)"
+        },
+        "logViewer.auth.anonymous": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用匿名模式 (游客访问，不使用 Cookie 或 Token)"
         },
         "logViewer.subreddits": {
           "type": "array",
@@ -101,9 +116,29 @@
         "title": "加载更多评论"
       },
       {
+        "command": "logViewer.checkAuth",
+        "title": "验证 Cookie",
+        "icon": "$(verified)"
+      },
+      {
         "command": "logViewer.openSettings",
         "title": "设置",
         "icon": "$(gear)"
+      },
+      {
+        "command": "logViewer.login",
+        "title": "登录 (OAuth2)",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "logViewer.logout",
+        "title": "登出",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "logViewer.toggleAnonymous",
+        "title": "切换匿名模式 (Guest Mode)",
+        "icon": "$(eye)"
       }
     ],
     "menus": {

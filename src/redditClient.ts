@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { RateLimiter } from './rateLimiter';
+import { OAuthManager } from './oauthManager';
 
 export interface RedditPost {
   id: string;
@@ -20,13 +21,43 @@ export interface RedditComment {
 }
 
 export class RedditClient {
-  constructor(private limiter: RateLimiter, private cookie: string) {}
+  constructor(
+    private limiter: RateLimiter, 
+    private cookie: string,
+    private oauthManager?: OAuthManager,
+    private isAnonymous: boolean = false
+  ) {}
 
-  private get headers() {
-    return {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Cookie': this.cookie
+  setAnonymousMode(enabled: boolean) {
+    this.isAnonymous = enabled;
+  }
+
+  updateCookie(newCookie: string) {
+    this.cookie = newCookie;
+  }
+
+  private async getHeaders() {
+    const headers: any = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
+
+    if (this.isAnonymous) {
+      return headers;
+    }
+
+    if (this.oauthManager) {
+      const token = await this.oauthManager.getAccessToken();
+      if (token) {
+        headers['Authorization'] = `bearer ${token}`;
+        return headers;
+      }
+    }
+
+    if (this.cookie) {
+      headers['Cookie'] = this.cookie;
+    }
+
+    return headers;
   }
 
   async fetchSubreddit(subreddit: string, after?: string): Promise<{
@@ -37,7 +68,8 @@ export class RedditClient {
     const url = `https://www.reddit.com/r/${subreddit}/hot.json?limit=25${after ? `&after=${after}` : ''}`;
     
     try {
-      const response = await axios.get(url, { headers: this.headers });
+      const headers = await this.getHeaders();
+      const response = await axios.get(url, { headers });
       const data = response.data.data;
       
       const posts = data.children.map((child: any) => ({
@@ -68,7 +100,8 @@ export class RedditClient {
     const url = `https://www.reddit.com/r/${subreddit}/comments/${postId}.json`;
 
     try {
-      const response = await axios.get(url, { headers: this.headers });
+      const headers = await this.getHeaders();
+      const response = await axios.get(url, { headers });
       // Reddit returns array: [postListing, commentListing]
       const postData = response.data[0].data.children[0].data;
       const commentsData = response.data[1].data.children;
@@ -89,6 +122,20 @@ export class RedditClient {
     } catch (error) {
       console.error('Failed to fetch post:', error);
       throw error;
+    }
+  }
+
+  async checkAuth(): Promise<string | null> {
+    await this.limiter.acquire();
+    const url = 'https://www.reddit.com/api/v1/me.json';
+
+    try {
+      const headers = await this.getHeaders();
+      const response = await axios.get(url, { headers });
+      return response.data.name; // Returns username if authenticated
+    } catch (error) {
+      // 403 or 401 means not authenticated
+      return null;
     }
   }
 
