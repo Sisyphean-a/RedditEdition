@@ -16,8 +16,20 @@ export interface IRedditClient {
   isAnonymousMode(): Promise<boolean>;
 }
 
+export interface TranslationProgress {
+  translated: TranslatedPost;
+  stage: 'title' | 'selftext' | 'comment';
+  commentIndex?: number;
+  total?: number;
+}
+
 export interface ITranslationService {
   translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost>;
+  translatePostStream(
+    post: RedditPost,
+    comments: RedditComment[],
+    onProgress: (progress: TranslationProgress) => void
+  ): Promise<TranslatedPost>;
   translateTitles(titles: string[]): Promise<string[]>;
   translatePostFast(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost>;
   updateConfig(apiKey: string, modelName: string, provider: string): void;

@@ -1,10 +1,16 @@
 import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "./models";
+import { TranslationProgress } from "./interfaces";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Logger } from "./logger";
 import axios from "axios";
 
 export interface ITranslationStrategy {
   translatePost(post: RedditPost, comments: RedditComment[]): Promise<TranslatedPost>;
+  translatePostStream?(
+    post: RedditPost,
+    comments: RedditComment[],
+    onProgress: (progress: TranslationProgress) => void
+  ): Promise<TranslatedPost>;
   translateTitles(titles: string[]): Promise<string[]>;
 }
 
@@ -105,6 +111,45 @@ export class MachineStrategy implements ITranslationStrategy {
             selftext: selftext || post.selftext,
             comments: translatedComments,
         };
+    }
+
+    async translatePostStream(
+        post: RedditPost,
+        comments: RedditComment[],
+        onProgress: (progress: TranslationProgress) => void
+    ): Promise<TranslatedPost> {
+        const result: TranslatedPost = {
+            title: post.title,
+            selftext: post.selftext,
+            comments: comments.slice(0, 10).map(c => ({
+                author: c.author,
+                body: c.body,
+                replies: [],
+            })),
+        };
+        const total = comments.slice(0, 10).length;
+
+        // 翻译标题
+        result.title = await this.translateText(post.title);
+        onProgress({ translated: { ...result }, stage: 'title' });
+
+        // 翻译正文
+        result.selftext = await this.translateText(post.selftext, 5000);
+        onProgress({ translated: { ...result }, stage: 'selftext' });
+
+        // 逐条翻译评论
+        for (let i = 0; i < result.comments.length; i++) {
+            const c = comments[i];
+            result.comments[i].body = await this.translateText(c.body, 3000);
+            onProgress({
+                translated: { ...result, comments: [...result.comments] },
+                stage: 'comment',
+                commentIndex: i,
+                total,
+            });
+        }
+
+        return result;
     }
 
     async translateTitles(titles: string[]): Promise<string[]> {

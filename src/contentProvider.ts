@@ -56,10 +56,11 @@ export class LogContentProvider implements vscode.TextDocumentContentProvider {
     comments: any[],
   ) {
     try {
-      const translated = await this.translator.translatePost(post, comments);
-      const content = this.presenter.render(post, translated);
-      this.cache.set(`trans:${post.id}`, content);
-      this._onDidChange.fire(uri);
+      await this.translator.translatePostStream(post, comments, (progress) => {
+        const content = this.presenter.render(post, progress.translated);
+        this.cache.set(`trans:${post.id}`, content);
+        this._onDidChange.fire(uri);
+      });
     } catch (e) {
       console.error("Background translation failed", e);
     }

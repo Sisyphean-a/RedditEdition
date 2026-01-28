@@ -1,5 +1,5 @@
 import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "./models";
-import { ITranslationService } from "./interfaces";
+import { ITranslationService, TranslationProgress } from "./interfaces";
 import { Logger } from "./logger";
 import { ITranslationStrategy, GeminiStrategy, MachineStrategy } from "./translationStrategies";
 
@@ -41,6 +41,23 @@ export class Translator implements ITranslationService {
        }
        throw error;
     }
+  }
+
+  async translatePostStream(
+    post: RedditPost,
+    comments: RedditComment[],
+    onProgress: (progress: TranslationProgress) => void
+  ): Promise<TranslatedPost> {
+    // 如果当前策略支持流式，使用流式；否则降级到机械翻译流式
+    if (this.strategy.translatePostStream) {
+      try {
+        return await this.strategy.translatePostStream(post, comments, onProgress);
+      } catch (error) {
+        Logger.error("Stream translation failed, switching to fallback...", error);
+      }
+    }
+    // AI 策略不支持流式，或失败时，使用机械翻译的流式
+    return this.machineStrategy.translatePostStream(post, comments, onProgress);
   }
 
   async translateTitles(titles: string[]): Promise<string[]> {
