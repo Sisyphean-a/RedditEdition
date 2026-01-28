@@ -1,4 +1,4 @@
-import { RedditPost, TranslatedPost, TranslatedComment } from "./models";
+import { RedditPost, TranslatedPost, TranslatedComment } from "../domain/models";
 
 export class LogPresenter {
   constructor(private wordWrapWidth: number = 80) {}

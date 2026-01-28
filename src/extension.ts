@@ -1,15 +1,15 @@
 import * as vscode from "vscode";
-import { getConfig } from "./config";
-import { RateLimiter } from "./rateLimiter";
-import { CacheManager } from "./cache";
-import { RedditClient } from "./redditClient";
-import { Translator } from "./translator";
-import { RedditTreeProvider } from "./treeProvider";
-import { LogContentProvider } from "./contentProvider";
-import { Logger } from "./logger";
-import { OAuthManager } from "./oauthManager";
-import { LogPresenter } from "./logPresenter";
-import { AccountProvider } from "./accountProvider";
+import { getConfig } from "./infrastructure/utils/config";
+import { RateLimiter } from "./infrastructure/utils/rateLimiter";
+import { CacheManager } from "./infrastructure/utils/cache";
+import { RedditClient } from "./infrastructure/reddit/redditClient";
+import { Translator } from "./infrastructure/translation/translator";
+import { RedditTreeProvider } from "./presentation/treeProvider";
+import { LogContentProvider } from "./presentation/contentProvider";
+import { Logger } from "./infrastructure/utils/logger";
+import { OAuthManager } from "./infrastructure/auth/oauthManager";
+import { LogPresenter } from "./presentation/logPresenter";
+import { AccountProvider } from "./presentation/accountProvider";
 
 export function activate(context: vscode.ExtensionContext) {
   Logger.initialize(context, "Log Viewer Debug");

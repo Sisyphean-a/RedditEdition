@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
-import { RedditClient } from "./redditClient";
-import { RedditPost,  } from "./models";
-import { Translator } from "./translator";
-import { TranslatedPost } from "./models";
-import { CacheManager } from "./cache";
-import { Config } from "./config";
+import { RedditClient } from "../infrastructure/reddit/redditClient";
+import { RedditPost,  } from "../domain/models";
+import { Translator } from "../infrastructure/translation/translator";
+import { TranslatedPost } from "../domain/models";
+import { CacheManager } from "../infrastructure/utils/cache";
+import { Config } from "../infrastructure/utils/config";
 
 type TreeNode = SubredditNode | PostNode | LoadMoreNode;
 

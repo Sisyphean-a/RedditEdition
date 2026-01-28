@@ -94,13 +94,46 @@ A: 必须使用 **OAuth2 登录**，并且在 Reddit 网页端设置中开启 "I
 
 ## 🏗️ 技术架构 (2.0 重构版)
 
-本项目遵循 **Clean Architecture** 原则进行设计：
+本项目遵循 **Clean Architecture** 原则进行设计,目录结构清晰分层:
 
-*   **Domain Layer**: 定义核心业务实体 (`RedditPost`) 和接口 (`IRedditClient`, `ITranslationService`)，不依赖任何外部框架。
-*   **Infrastructure Layer**: 
-    *   `RedditClient`: 实现 API 调用，支持 OAuth2/匿名双模。
-    *   `Translator`: 采用**策略模式**，动态切换 Gemini AI 或 Google 翻译引擎。
-*   **Presentation Layer**: 
+### 目录结构
+
+```
+src/
+├── extension.ts              # 扩展入口,负责依赖注入和生命周期管理
+├── domain/                   # 领域层 (核心业务逻辑,不依赖外部框架)
+│   ├── models.ts            # 数据模型 (RedditPost 等)
+│   └── interfaces.ts        # 接口定义 (IRedditClient, ITranslationService)
+├── infrastructure/           # 基础设施层 (外部依赖的具体实现)
+│   ├── reddit/              # Reddit API 客户端
+│   │   └── redditClient.ts  # 实现 IRedditClient,支持 OAuth2/匿名双模
+│   ├── translation/         # 翻译服务
+│   │   ├── translator.ts    # 翻译服务协调器
+│   │   └── translationStrategies.ts  # 策略模式实现 (Gemini/DeepSeek/Machine)
+│   ├── auth/                # 认证模块
+│   │   ├── oauthManager.ts  # OAuth2 认证管理
+│   │   └── authServer.ts    # OAuth2 回调服务器
+│   └── utils/               # 工具类
+│       ├── cache.ts         # 缓存管理
+│       ├── rateLimiter.ts   # 令牌桶限流器
+│       ├── config.ts        # 配置读取
+│       └── logger.ts        # 日志工具
+└── presentation/             # 表现层 (UI 相关)
+    ├── logPresenter.ts      # 日志格式化与渲染
+    ├── accountProvider.ts   # 侧边栏账户视图
+    ├── treeProvider.ts      # 树状视图提供者
+    └── contentProvider.ts   # 内容提供者
+```
+
+### 架构分层
+
+*   **Domain Layer (领域层)**: 定义核心业务实体 (`RedditPost`) 和接口 (`IRedditClient`, `ITranslationService`),不依赖任何外部框架。
+*   **Infrastructure Layer (基础设施层)**: 
+    *   `RedditClient`: 实现 API 调用,支持 OAuth2/匿名双模。
+    *   `Translator`: 采用**策略模式**,动态切换 Gemini AI、DeepSeek 或 Google 翻译引擎。
+    *   `Auth`: OAuth2 认证流程管理。
+    *   `Utils`: 缓存、限流、配置、日志等工具。
+*   **Presentation Layer (表现层)**: 
     *   `LogPresenter`: 专注处理日志格式化与渲染 (View Logic)。
     *   `AccountProvider`: 管理侧边栏账户视图状态。
-    *   `Providers`: 适配 VS Code API。
+    *   `TreeProvider` / `ContentProvider`: 适配 VS Code API。

@@ -1,7 +1,7 @@
-import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "./models";
-import { TranslationProgress } from "./interfaces";
+import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "../../domain/models";
+import { TranslationProgress } from "../../domain/interfaces";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Logger } from "./logger";
+import { Logger } from "../utils/logger";
 import axios from "axios";
 
 

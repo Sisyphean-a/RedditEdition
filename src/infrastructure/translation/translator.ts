@@ -1,6 +1,6 @@
-import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "./models";
-import { ITranslationService, TranslationProgress } from "./interfaces";
-import { Logger } from "./logger";
+import { RedditPost, RedditComment, TranslatedPost, TranslatedComment } from "../../domain/models";
+import { ITranslationService, TranslationProgress } from "../../domain/interfaces";
+import { Logger } from "../utils/logger";
 import { ITranslationStrategy, GeminiStrategy, MachineStrategy, DeepSeekStrategy } from "./translationStrategies";
 
 export class Translator implements ITranslationService {

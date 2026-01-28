@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import { AuthServer } from './authServer';
-import { Logger } from './logger';
-import { getConfig } from './config';
+import { Logger } from '../utils/logger';
+import { getConfig } from '../utils/config';
 
 export class OAuthManager {
   private static readonly KEY_REFRESH_TOKEN = 'reddit_refresh_token';
